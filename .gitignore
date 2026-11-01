@@ -1,0 +1,10 @@
+# Gradle & Android build caches
+.gradle/
+build/
+app/build/
+*.iml
+.idea/
+local.properties
+.DS_Store
+Thumbs.db
+*.log

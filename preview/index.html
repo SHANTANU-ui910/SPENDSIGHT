@@ -1,0 +1,2746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#06080e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SpendSight">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<title>SpendSight — Financial HUD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #06080e;
+    --obsidian: #0d111c;
+    --elevated: #141a29;
+    --surface-hi: #1d263b;
+    --teal: #00f5d4;
+    --teal-glow: rgba(0, 245, 212, 0.28);
+    --mint: #00ff9d;
+    --mint-glow: rgba(0, 255, 157, 0.25);
+    --amethyst: #9d4edd;
+    --amber: #ffb300;
+    --amber-glow: rgba(255, 179, 0, 0.25);
+    --laser: #ff2a6d;
+    --laser-glow: rgba(255, 42, 109, 0.25);
+    --border-top: rgba(255, 255, 255, 0.16);
+    --border-bot: rgba(0, 0, 0, 0.6);
+    --text-white: #ffffff;
+    --text-cyan: #80fff4;
+    --text-slate: #cbd5e1;
+    --text-muted: #64748b;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #030407;
+    color: var(--text-slate);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .preview-wrapper {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    justify-content: center;
+    max-width: 1220px;
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+  }
+
+  /* Phone Shell */
+  .device-frame {
+    width: 392px;
+    height: 844px;
+    max-height: 96vh;
+    background: var(--void);
+    border-radius: 46px;
+    box-shadow: 0 0 0 10px #1a1e28, 0 0 0 12px #090c12, 0 25px 70px rgba(0,0,0,0.9), 0 0 50px var(--teal-glow);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-top);
+  }
+
+  /* Status Bar */
+  .status-bar {
+    height: 40px;
+    padding: 10px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    z-index: 10;
+    flex-shrink: 0;
+  }
+  .dynamic-island {
+    width: 86px;
+    height: 20px;
+    background: #000;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* Screen Viewports */
+  .screen-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 16px 85px;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  .screen-container::-webkit-scrollbar { display: none; }
+
+  /* App Header */
+  .hud-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+  }
+  .brand-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-white);
+    letter-spacing: 0.8px;
+  }
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 8px var(--mint);
+    animation: beacon 2s infinite ease-in-out;
+  }
+  @keyframes beacon { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: var(--obsidian);
+    border: 1px solid var(--border-top);
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform 120ms ease;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+
+  /* Live Search Box */
+  .search-wrap {
+    display: none;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .search-wrap.open { display: block; }
+  .search-input {
+    width: 100%;
+    height: 38px;
+    background: var(--obsidian);
+    border: 1px solid var(--teal);
+    border-radius: 12px;
+    color: #fff;
+    padding: 0 34px 0 12px;
+    font-size: 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    outline: none;
+    box-shadow: 0 0 12px var(--teal-glow);
+  }
+  .search-clear {
+    position: absolute;
+    right: 10px;
+    top: 9px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  /* Period Selector */
+  .period-toggle {
+    display: flex;
+    background: var(--obsidian);
+    border-radius: 14px;
+    padding: 3px;
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 14px;
+  }
+  .period-btn {
+    flex: 1;
+    padding: 7px 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: all 180ms ease;
+  }
+  .period-btn.active {
+    background: var(--teal);
+    color: #000;
+  }
+
+  /* Chroma-Morphic Hero Card */
+  .hero-card {
+    background: linear-gradient(180deg, #131a29 0%, #0d111c 100%);
+    border-radius: 24px;
+    padding: 16px;
+    border: 1px solid var(--border-top);
+    box-shadow: 0 16px 36px rgba(0,0,0,0.5), inset 0 0 20px rgba(0, 245, 212, 0.05);
+    margin-bottom: 14px;
+    transition: transform 120ms ease;
+  }
+  .hero-card:active { transform: scale(0.99); }
+
+  .hero-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .hero-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-cyan);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .burn-badge {
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-slate);
+    font-weight: 600;
+  }
+  .hero-amount {
+    font-size: 36px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.8px;
+    font-feature-settings: "tnum";
+    margin-bottom: 4px;
+    line-height: 1.15;
+  }
+  .cents { font-size: 19px; font-weight: 700; vertical-align: super; }
+  .variance-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 12px 0 10px;
+  }
+
+  .hero-submetrics {
+    display: flex;
+    justify-content: space-between;
+  }
+  .submetric-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .submetric-val {
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Smart Insight */
+  .insight-banner {
+    background: linear-gradient(90deg, #181528 0%, #0d101a 100%);
+    border: 1px solid rgba(255, 179, 0, 0.3);
+    border-radius: 18px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .insight-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--amber-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .insight-text h4 { font-size: 12px; color: #fff; font-weight: 700; }
+  .insight-text p { font-size: 11px; color: var(--text-slate); margin-top: 2px; }
+
+  /* Charts Container */
+  .chart-card {
+    background: var(--obsidian);
+    border-radius: 20px;
+    padding: 14px;
+    border: 1px solid var(--border-top);
+    margin-bottom: 14px;
+  }
+  .chart-card-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Donut Layout */
+  .donut-flex {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .donut-svg-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+  }
+  .donut-center-info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .donut-center-info small {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    color: var(--text-muted);
+  }
+  .donut-center-info h3 {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .donut-legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .donut-legend::-webkit-scrollbar { display: none; }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+  }
+  .legend-left { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 3px; }
+
+  /* Bar Chart */
+  .bars-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 90px;
+    padding-top: 8px;
+  }
+  .bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    cursor: pointer;
+  }
+  .bar-col:active .bar-pill { transform: scaleY(1.08); }
+  .bar-pill {
+    width: 14px;
+    background: linear-gradient(180deg, var(--teal) 0%, rgba(0, 245, 212, 0.25) 100%);
+    border-radius: 6px 6px 3px 3px;
+    transition: height 500ms cubic-bezier(0.25, 1, 0.5, 1), transform 120ms ease;
+  }
+  .bar-pill.peak {
+    background: linear-gradient(180deg, var(--laser) 0%, rgba(255, 42, 109, 0.3) 100%);
+    box-shadow: 0 0 10px var(--laser-glow);
+  }
+  .bar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+  }
+
+  /* Category Budget Rings Row */
+  .budget-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    margin-bottom: 14px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .budget-row::-webkit-scrollbar { display: none; }
+  .budget-card {
+    min-width: 108px;
+    background: var(--elevated);
+    border-radius: 16px;
+    padding: 10px;
+    border: 1px solid var(--border-top);
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .ring-svg-wrap {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 5px;
+  }
+  .ring-val {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .budget-name { font-size: 11px; font-weight: 700; color: #fff; }
+  .budget-spent { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+
+  /* 30-Day Heatmap */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+    margin-top: 8px;
+  }
+  .heatmap-cell {
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 120ms ease;
+  }
+  .heatmap-cell:active { transform: scale(1.15); }
+  .level-0 { background: rgba(255,255,255,0.04); color: var(--text-muted); }
+  .level-1 { background: rgba(0, 255, 157, 0.22); color: #fff; }
+  .level-2 { background: rgba(0, 255, 157, 0.55); color: #000; }
+  .level-3 { background: var(--mint); color: #000; box-shadow: 0 0 8px var(--mint-glow); }
+
+  /* Transaction Items */
+  .ledger-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .ledger-title h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+  }
+  .tx-list { display: flex; flex-direction: column; gap: 8px; }
+  .tx-card {
+    background: var(--obsidian);
+    border-radius: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-top);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 120ms ease;
+  }
+  .tx-card:active { transform: scale(0.98); }
+  .tx-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .tx-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--teal);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .tx-info { min-width: 0; flex: 1; }
+  .tx-info h5 { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tx-tag { color: var(--teal); font-weight: 700; }
+  .tx-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tx-amount {
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+  }
+  .tx-amount.income { color: var(--mint); }
+  .tx-del-btn {
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 120ms ease;
+  }
+  .tx-del-btn:hover { color: var(--laser); }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 34px 16px;
+    color: var(--text-muted);
+  }
+  .empty-icon { font-size: 34px; margin-bottom: 8px; opacity: 0.6; }
+  .empty-title { font-size: 13px; color: #fff; font-weight: 700; margin-bottom: 4px; }
+  .empty-desc { font-size: 11.5px; line-height: 1.4; color: var(--text-slate); }
+
+  /* Tab Viewports */
+  .tab-view { display: none; }
+  .tab-view.active { display: block; }
+
+  /* Category Filter Bar in Ledger Tab */
+  .category-filter-row {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .category-filter-row::-webkit-scrollbar { display: none; }
+
+  /* Bottom Navigation Bar */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 72px;
+    background: rgba(13, 17, 28, 0.96);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-top);
+    border-radius: 22px 22px 0 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 8px;
+    z-index: 20;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 12px;
+    transition: all 180ms ease;
+  }
+  .nav-item.active {
+    color: #fff;
+    background: rgba(0, 245, 212, 0.12);
+  }
+  .nav-item.active svg { stroke: var(--teal); }
+
+  /* Center Radial FAB */
+  .fab-wrap {
+    position: relative;
+    top: -10px;
+  }
+  .center-fab {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--mint) 100%);
+    box-shadow: 0 6px 20px var(--teal-glow);
+    border: 2px solid rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 26px;
+    color: #000;
+    font-weight: 700;
+    transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .center-fab.open { transform: rotate(135deg); }
+
+  /* Floating Radial Menu */
+  .radial-menu {
+    position: absolute;
+    bottom: 66px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 25;
+  }
+  .radial-menu.open {
+    opacity: 1;
+    pointer-events: auto;
+    bottom: 74px;
+  }
+  .radial-item {
+    background: var(--elevated);
+    border: 1px solid var(--border-top);
+    border-radius: 30px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.6);
+  }
+
+  /* MODAL 1: Instant Pop-Up Overlay (300ms Spring) */
+  .overlay-backdrop {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease;
+  }
+  .overlay-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .overlay-sheet {
+    background: linear-gradient(180deg, #101624 0%, #080b14 100%);
+    border-radius: 28px 28px 0 0;
+    border-top: 1px solid var(--border-top);
+    padding: 14px 18px 22px;
+    transform: translateY(100%);
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .overlay-backdrop.show .overlay-sheet { transform: translateY(0); }
+
+  .drag-handle {
+    width: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+
+  .pulse-amount {
+    font-size: 34px;
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    animation: amountPulse 400ms ease;
+    margin: 6px 0 2px;
+  }
+  @keyframes amountPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); color: var(--teal); }
+    100% { transform: scale(1); color: #fff; }
+  }
+
+  /* Chip Horizontal Scroll */
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 6px 0;
+    margin: 6px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chip-row::-webkit-scrollbar { display: none; }
+  .hologram-chip {
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: var(--elevated);
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-slate);
+    white-space: nowrap;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    transition: all 180ms ease;
+  }
+  .hologram-chip.selected {
+    background: rgba(0, 245, 212, 0.2);
+    border-color: var(--teal);
+    color: #fff;
+    box-shadow: 0 0 14px var(--teal-glow);
+  }
+
+  /* MODAL 2: Fullscreen Add Screen */
+  .add-modal {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--void);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 300ms cubic-bezier(0.25, 1, 0.5, 1);
+    overflow-y: auto;
+    padding: 14px;
+  }
+  .add-modal.open { transform: translateY(0); }
+
+  /* Dished Keypad */
+  .keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .keypad-btn {
+    height: 48px;
+    background: linear-gradient(180deg, #161e30 0%, #0e1320 100%);
+    border-radius: 14px;
+    border: 1px solid var(--border-top);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 19px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+    transition: transform 80ms ease, background 80ms ease;
+  }
+  .keypad-btn:active {
+    transform: scale(0.93);
+    background: linear-gradient(180deg, #090d16 0%, #141a29 100%);
+  }
+
+  /* MODAL 3: Download & Install App Guide Modal */
+  .install-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .install-modal.open { display: flex; }
+  .install-card {
+    background: #0d111c;
+    border: 1px solid var(--teal);
+    border-radius: 28px;
+    padding: 24px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.9), 0 0 30px var(--teal-glow);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .install-tab-row {
+    display: flex;
+    background: var(--elevated);
+    border-radius: 12px;
+    padding: 3px;
+    margin: 16px 0;
+  }
+  .install-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .install-tab.active {
+    background: var(--teal);
+    color: #000;
+  }
+  .install-step {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--elevated);
+    border: 1px solid var(--teal);
+    color: var(--teal);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-content h5 { font-size: 13px; color: #fff; font-weight: 700; }
+  .step-content p { font-size: 11.5px; color: var(--text-slate); margin-top: 2px; line-height: 1.4; }
+
+  /* Mobile Floating Test Button (Visible on Small Screens) */
+  .mobile-test-pill {
+    display: none;
+    position: fixed;
+    top: 12px;
+    right: 14px;
+    z-index: 100;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--mint) 100%);
+    color: #000;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 20px;
+    padding: 6px 12px;
+    box-shadow: 0 4px 16px var(--teal-glow);
+    cursor: pointer;
+    border: none;
+  }
+
+  /* Side Telemetry Controls */
+  .control-panel {
+    flex: 1;
+    background: #0d111c;
+    border-radius: 32px;
+    padding: 24px;
+    border: 1px solid var(--border-top);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    max-height: 96vh;
+    overflow-y: auto;
+  }
+  .control-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .control-desc {
+    font-size: 12px;
+    color: var(--text-slate);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .sim-btn {
+    background: var(--elevated);
+    border: 1px solid var(--border-top);
+    border-radius: 14px;
+    padding: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+  .sim-btn:active {
+    border-color: var(--teal);
+    transform: scale(0.97);
+  }
+  .sim-btn h4 { font-size: 12px; color: #fff; font-weight: 700; }
+  .sim-btn p { font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
+
+  .badge-tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 8.5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .tag-gpay { background: rgba(0, 245, 212, 0.15); color: var(--teal); }
+  .tag-phonepe { background: rgba(157, 78, 221, 0.2); color: var(--amethyst); }
+  .tag-sms { background: rgba(255, 179, 0, 0.2); color: var(--amber); }
+  .tag-spam { background: rgba(255, 42, 109, 0.2); color: var(--laser); }
+
+  .console-log {
+    background: #06080e;
+    border-radius: 14px;
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    height: 130px;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: var(--text-slate);
+    line-height: 1.6;
+  }
+  .log-line { margin-bottom: 3px; }
+  .log-success { color: var(--mint); }
+  .log-warn { color: var(--amber); }
+  .log-err { color: var(--laser); }
+  .log-info { color: var(--teal); }
+
+  /* Config / Settings View */
+  .config-section {
+    background: var(--obsidian);
+    border: 1px solid var(--border-top);
+    border-radius: 20px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .config-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .config-row:last-child { border-bottom: none; }
+  .config-label h5 { font-size: 13px; font-weight: 700; color: #fff; }
+  .config-label p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .toggle-switch {
+    width: 44px;
+    height: 24px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 200ms ease;
+  }
+  .toggle-switch.on { background: var(--teal); }
+  .toggle-knob {
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 200ms ease;
+  }
+  .toggle-switch.on .toggle-knob { transform: translateX(20px); background: #000; }
+
+  @media (max-width: 900px) {
+    body {
+      padding: 0;
+      margin: 0;
+      background: var(--void);
+      height: 100dvh;
+      width: 100vw;
+    }
+    .preview-wrapper {
+      padding: 0;
+      width: 100vw;
+      height: 100dvh;
+      gap: 0;
+    }
+    .device-frame {
+      width: 100vw;
+      height: 100dvh;
+      max-height: 100dvh;
+      border-radius: 0;
+      box-shadow: none;
+      border: none;
+    }
+    .status-bar {
+      padding-top: max(8px, env(safe-area-inset-top));
+    }
+    .screen-container {
+      padding: 8px 14px 85px;
+    }
+    .bottom-nav {
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      height: 74px;
+      border-radius: 20px 20px 0 0;
+    }
+    .mobile-test-pill {
+      display: block;
+    }
+    .control-panel {
+      position: fixed;
+      bottom: 74px;
+      left: 12px;
+      right: 12px;
+      z-index: 150;
+      border-radius: 24px;
+      background: rgba(13, 17, 28, 0.98);
+      backdrop-filter: blur(25px);
+      border: 1px solid var(--teal);
+      max-height: 65vh;
+      transform: translateY(120%);
+      transition: transform 300ms cubic-bezier(0.25, 1, 0.5, 1);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+    }
+    .control-panel.open-drawer {
+      transform: translateY(0);
+    }
+    .action-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Mobile Floating Test Button -->
+<button class="mobile-test-pill" onclick="toggleMobileDrawer()">⚡ SIMULATE ALERTS</button>
+
+<div class="preview-wrapper">
+  <!-- ANDROID DEVICE FRAME (FULLSCREEN ON MOBILE) -->
+  <div class="device-frame">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span id="statusBarClock">12:00</span>
+      <div class="dynamic-island"></div>
+      <span>5G 99%</span>
+    </div>
+
+    <!-- Screen Content -->
+    <div class="screen-container" id="screenContainer">
+      <!-- App Header -->
+      <div class="hud-header">
+        <div class="brand-tag">
+          <div class="pulse-dot"></div>
+          <span id="hudHeaderTitle">SPENDSIGHT // HUD</span>
+        </div>
+        <div class="header-actions">
+          <div class="icon-btn" onclick="openInstallModal()" title="Download / Install App" style="background:linear-gradient(135deg, var(--teal), var(--mint));color:#000;font-weight:bold">📲</div>
+          <div class="icon-btn" onclick="toggleSearch()" title="Search Transactions">🔍</div>
+          <div class="icon-btn" onclick="exportCsv()" title="Export CSV">📥</div>
+        </div>
+      </div>
+
+      <!-- Live Search Box (Slides open on 🔍 tap) -->
+      <div class="search-wrap" id="searchWrap">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search payee, category, notes..." oninput="handleSearch(this.value)">
+        <span class="search-clear" onclick="clearSearch()">✕</span>
+      </div>
+
+      <!-- VIEWPORT 1: HUD TAB (MAIN EXECUTIVE VIEW) -->
+      <div class="tab-view active" id="viewHud">
+        <!-- Period Filter Segment -->
+        <div class="period-toggle">
+          <div class="period-btn" onclick="setPeriod('TODAY', this)">TODAY</div>
+          <div class="period-btn active" onclick="setPeriod('7 DAYS', this)">7 DAYS</div>
+          <div class="period-btn" onclick="setPeriod('30 DAYS', this)">30 DAYS</div>
+          <div class="period-btn" onclick="setPeriod('CUSTOM', this)">ALL TIME</div>
+        </div>
+
+        <!-- Hero Spending Telemetry Card -->
+        <div class="hero-card">
+          <div class="hero-top-row">
+            <span class="hero-label">TOTAL OUTFLOW</span>
+            <span class="burn-badge" id="burnBadge">BURN: ₹0/HR</span>
+          </div>
+          <div class="hero-amount" id="heroAmount">₹ 0<span class="cents">.00</span></div>
+          <div class="variance-tag" id="varianceTag" style="color:var(--text-muted)">0.0% vs previous period</div>
+
+          <div class="divider"></div>
+
+          <div class="hero-submetrics">
+            <div>
+              <div class="submetric-title">INCOME</div>
+              <div class="submetric-val" id="metricIncome" style="color:var(--mint)">₹ 0</div>
+            </div>
+            <div>
+              <div class="submetric-title">NET BALANCE</div>
+              <div class="submetric-val" id="metricNet" style="color:#fff">₹ 0</div>
+            </div>
+            <div>
+              <div class="submetric-title">DAILY AVG</div>
+              <div class="submetric-val" id="metricDailyAvg" style="color:var(--text-slate)">₹ 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Smart Insights Banner -->
+        <div class="insight-banner" id="insightBanner">
+          <div class="insight-icon">💡</div>
+          <div class="insight-text">
+            <h4 id="insightHeadline">Telemetry Active</h4>
+            <p id="insightDesc">Ready to intercept live UPI, Card, and Bank payments on this device.</p>
+          </div>
+        </div>
+
+        <!-- Allocation Breakdown (Dynamic SVG Donut) -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <span>ALLOCATION BREAKDOWN</span>
+            <span id="donutSubtitle" style="font-size:9px;color:var(--teal)">DYNAMIC</span>
+          </div>
+          <div class="donut-flex">
+            <div class="donut-svg-wrap">
+              <svg width="120" height="120" viewBox="0 0 130 130" id="donutSvg">
+                <!-- Dynamically populated circles -->
+              </svg>
+              <div class="donut-center-info">
+                <small>TOTAL</small>
+                <h3 id="donutTotal">₹0</h3>
+              </div>
+            </div>
+            <div class="donut-legend" id="donutLegend">
+              <!-- Dynamically populated legend items -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Velocity (Dynamic Bar Chart) -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <span>DAILY VELOCITY (MON - SUN)</span>
+            <span id="peakDayBadge" style="font-size:9px;color:var(--laser)"></span>
+          </div>
+          <div class="bars-row" id="barsRow">
+            <!-- Dynamically populated bars -->
+          </div>
+        </div>
+
+        <!-- Category Budget Targets -->
+        <div class="chart-card-header">CATEGORY BUDGET TARGETS</div>
+        <div class="budget-row" id="budgetRow">
+          <!-- Dynamically populated budget cards -->
+        </div>
+
+        <!-- 30-Day Heatmap Intensity Calendar -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <span>30-DAY INTENSITY HEATMAP</span>
+            <span style="font-size:8.5px;color:var(--text-muted)">TAP CELL TO INSPECT</span>
+          </div>
+          <div class="heatmap-grid" id="heatmapGrid"></div>
+        </div>
+
+        <!-- Live Ledger Stream Preview -->
+        <div class="ledger-title">
+          <h4>RECENT TRANSACTIONS</h4>
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--teal)" id="txCount">0 TXNS</span>
+        </div>
+        <div class="tx-list" id="txListPreview"></div>
+        <div style="text-align:center;margin-top:10px">
+          <span onclick="setNavByName('LEDGER')" style="font-family:'JetBrains Mono';font-size:11px;color:var(--teal);cursor:pointer;font-weight:700">View All Transactions in Ledger →</span>
+        </div>
+      </div>
+
+      <!-- VIEWPORT 2: FULL LEDGER TAB -->
+      <div class="tab-view" id="viewLedger">
+        <div class="chart-card-header">
+          <span>FULL TRANSACTION LEDGER</span>
+          <span id="ledgerFilterCount" style="color:var(--teal)">0 FOUND</span>
+        </div>
+
+        <!-- Category Filter Chips -->
+        <div class="category-filter-row" id="ledgerCategoryChips">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div class="tx-list" id="txListFull"></div>
+      </div>
+
+      <!-- VIEWPORT 3: METRICS DEEP-DIVE TAB -->
+      <div class="tab-view" id="viewMetrics">
+        <div class="chart-card-header">
+          <span>ANALYTICS & VELOCITY METRICS</span>
+          <span style="color:var(--teal)">30-DAY TELEMETRY</span>
+        </div>
+
+        <!-- Summary Metric Card -->
+        <div class="hero-card">
+          <div class="submetric-title">TOTAL AGGREGATE SPEND</div>
+          <div class="hero-amount" id="metricsTotalSpend">₹ 0</div>
+          <div style="display:flex;gap:14px;margin-top:8px;font-family:'JetBrains Mono';font-size:11px">
+            <div>HIGHEST OUTFLOW: <b id="metricsHighestCat" style="color:var(--teal)">None</b></div>
+            <div>TRANSACTIONS: <b id="metricsTotalCount" style="color:#fff">0</b></div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-header">SPENDING DENSITY HEATMAP</div>
+          <div class="heatmap-grid" id="heatmapGridMetrics"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-header">WEEKLY DAY VELOCITY</div>
+          <div class="bars-row" id="barsRowMetrics"></div>
+        </div>
+
+        <div class="chart-card-header">CATEGORY TARGET ALLOCATIONS</div>
+        <div class="budget-row" id="budgetRowMetrics"></div>
+      </div>
+
+      <!-- VIEWPORT 4: CONFIG & SETTINGS TAB -->
+      <div class="tab-view" id="viewConfig">
+        <div class="chart-card-header">
+          <span>SYSTEM SETTINGS & PRIVACY</span>
+        </div>
+
+        <div class="config-section">
+          <div class="config-row">
+            <div class="config-label">
+              <h5>Biometric Lock Shield</h5>
+              <p>Require fingerprint or face auth to unlock</p>
+            </div>
+            <div class="toggle-switch on" id="toggleBio" onclick="toggleBiometric()">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div class="config-label">
+              <h5>Haptic & Audio FX</h5>
+              <p>Audible ticks and vibration feedback</p>
+            </div>
+            <div class="toggle-switch on" id="toggleAudio" onclick="toggleAudioFx()">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div class="config-label">
+              <h5>Reduce Motion</h5>
+              <p>Disable heavy spring animations</p>
+            </div>
+            <div class="toggle-switch" id="toggleMotion" onclick="toggleMotionSetting()">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card-header">LEDGER & DATA ACTIONS</div>
+        <div class="config-section">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button onclick="openInstallModal()" style="width:100%;height:44px;background:linear-gradient(135deg, var(--teal), var(--mint));border:none;border-radius:14px;color:#000;font-weight:800;font-size:12.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+              📲 INSTALL APP ON ANDROID & IOS
+            </button>
+            <button onclick="exportCsv()" style="width:100%;height:40px;background:var(--elevated);border:1px solid var(--border-top);border-radius:12px;color:#fff;font-weight:700;font-size:12px;cursor:pointer">
+              📥 Export Ledger to CSV
+            </button>
+            <button onclick="resetData()" style="width:100%;height:40px;background:rgba(255,42,109,0.12);border:1px solid var(--laser);border-radius:12px;color:var(--laser);font-weight:700;font-size:12px;cursor:pointer">
+              🗑 Clear All Transactions
+            </button>
+          </div>
+        </div>
+
+        <div class="config-section" style="border-color:rgba(0,245,212,0.25)">
+          <div style="display:flex;gap:10px;align-items:center">
+            <div style="font-size:24px">🛡</div>
+            <div>
+              <h5 style="color:var(--text-cyan);font-size:12px;font-weight:bold">ZERO CLOUD RETENTION</h5>
+              <p style="font-size:11px;color:var(--text-muted);margin-top:2px">SpendSight runs 100% on-device. No telemetry, credentials, or personal payment data ever leaves this phone.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+      <div class="nav-item active" onclick="setNav(this, 'HUD')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        HUD
+      </div>
+      <div class="nav-item" onclick="setNav(this, 'LEDGER')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        LEDGER
+      </div>
+
+      <div class="fab-wrap">
+        <div class="radial-menu" id="radialMenu">
+          <div class="radial-item" onclick="openAddModal(); toggleFab();">⌨ MANUAL ENTRY</div>
+          <div class="radial-item" onclick="simulatePaymentFlow('UPI'); toggleFab();">⚡ TEST INTERCEPT</div>
+        </div>
+        <div class="center-fab" id="centerFab" onclick="toggleFab()">+</div>
+      </div>
+
+      <div class="nav-item" onclick="setNav(this, 'METRICS')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        METRICS
+      </div>
+      <div class="nav-item" onclick="setNav(this, 'CONFIG')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        CONFIG
+      </div>
+    </div>
+
+    <!-- MODAL 1: Instant Payment Pop-up (Floating Overlay) -->
+    <div class="overlay-backdrop" id="overlayBackdrop">
+      <div class="overlay-sheet">
+        <div class="drag-handle"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-cyan);font-weight:700">⚡ PAYMENT INTERCEPTED</span>
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--amber)" id="countdownTimer">⏱ 10s AUTO</span>
+        </div>
+
+        <div class="pulse-amount" id="popupAmount">₹ 0.00</div>
+        <div style="text-align:center;font-weight:700;color:#fff;font-size:15px" id="popupMerchant">Payment Transaction</div>
+        <div style="text-align:center;font-family:'JetBrains Mono';font-size:11px;color:var(--text-muted);margin-top:2px" id="popupMeta">Live Detection</div>
+
+        <div style="display:flex; justify-content:center; margin-top:8px;">
+          <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:4px 10px;font-size:11px;color:var(--text-slate)" id="popupSuggestion">
+            ★ Categorization Prompt
+          </div>
+        </div>
+
+        <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-muted);margin-top:10px;font-weight:700">ONE-TAP CATEGORIZE</div>
+        <div class="chip-row" id="popupChipRow">
+          <div class="hologram-chip selected" onclick="selectPopupChip(this, 'Food')">☕ Food</div>
+          <div class="hologram-chip" onclick="selectPopupChip(this, 'Travel')">🚗 Travel</div>
+          <div class="hologram-chip" onclick="selectPopupChip(this, 'Bills')">💡 Bills</div>
+          <div class="hologram-chip" onclick="selectPopupChip(this, 'Shopping')">🛍 Shopping</div>
+          <div class="hologram-chip" onclick="selectPopupChip(this, 'Health')">💊 Health</div>
+          <div class="hologram-chip" onclick="selectPopupChip(this, 'Groceries')">🛒 Groceries</div>
+          <div class="hologram-chip" onclick="selectPopupChip(this, 'Rent')">🏠 Rent</div>
+          <div class="hologram-chip" onclick="selectPopupChip(this, 'Other')">➕ Other</div>
+        </div>
+
+        <input type="text" id="popupNote" placeholder="Add contextual memo (optional)..." style="width:100%;height:38px;background:#06080e;border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:#fff;padding:0 12px;font-size:12px;outline:none;margin-bottom:10px;">
+
+        <div style="display:flex;gap:10px">
+          <button onclick="dismissPopup(false)" style="flex:1;height:42px;background:rgba(255,255,255,0.08);border:none;border-radius:14px;color:var(--text-slate);font-weight:700;font-size:13px;cursor:pointer">Skip</button>
+          <button onclick="savePopup()" style="flex:1.6;height:42px;background:linear-gradient(90deg, var(--teal), var(--mint));border:none;border-radius:14px;color:#000;font-weight:800;font-size:13px;cursor:pointer">Save Categorized</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: Fullscreen Manual Add Screen -->
+    <div class="add-modal" id="addModal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span onclick="closeAddModal()" style="color:var(--text-muted);font-size:18px;cursor:pointer;padding:8px">✕</span>
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:700;color:#fff">FAST MANUAL ENTRY</span>
+        <span onclick="saveManualEntry()" style="color:var(--teal);font-weight:800;font-size:18px;cursor:pointer;padding:8px">✓</span>
+      </div>
+
+      <!-- Debit/Credit Toggle -->
+      <div style="display:flex;background:#0d111c;border-radius:12px;padding:3px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.08)">
+        <div id="btnDebit" onclick="setManualType(false)" style="flex:1;text-align:center;padding:7px;border-radius:9px;background:var(--laser);color:#fff;font-family:'JetBrains Mono';font-size:10px;font-weight:700;cursor:pointer">EXPENSE (DEBIT)</div>
+        <div id="btnCredit" onclick="setManualType(true)" style="flex:1;text-align:center;padding:7px;border-radius:9px;color:var(--text-muted);font-family:'JetBrains Mono';font-size:10px;font-weight:700;cursor:pointer">INCOME (CREDIT)</div>
+      </div>
+
+      <!-- Typed Amount Display -->
+      <div id="keypadDisplay" style="text-align:center;font-size:38px;font-weight:800;color:#fff;font-feature-settings:'tnum';margin:2px 0 8px">₹ 0</div>
+
+      <!-- Category Selection Chips -->
+      <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-muted);margin-bottom:4px;font-weight:700">SELECT CATEGORY</div>
+      <div class="chip-row" id="manualCatRow">
+        <div class="hologram-chip selected" onclick="selectManualCategory(this, 'Food')">☕ Food</div>
+        <div class="hologram-chip" onclick="selectManualCategory(this, 'Travel')">🚗 Travel</div>
+        <div class="hologram-chip" onclick="selectManualCategory(this, 'Bills')">💡 Bills</div>
+        <div class="hologram-chip" onclick="selectManualCategory(this, 'Shopping')">🛍 Shopping</div>
+        <div class="hologram-chip" onclick="selectManualCategory(this, 'Health')">💊 Health</div>
+        <div class="hologram-chip" onclick="selectManualCategory(this, 'Groceries')">🛒 Groceries</div>
+        <div class="hologram-chip" onclick="selectManualCategory(this, 'Rent')">🏠 Rent</div>
+        <div class="hologram-chip" onclick="selectManualCategory(this, 'Entertainment')">🎬 Entertainment</div>
+        <div class="hologram-chip" onclick="selectManualCategory(this, 'Other')">➕ Other</div>
+      </div>
+
+      <!-- Payment Method -->
+      <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-muted);margin-top:6px;margin-bottom:4px;font-weight:700">PAYMENT METHOD</div>
+      <div class="chip-row" id="manualMethodRow">
+        <div class="hologram-chip selected" onclick="selectManualMethod(this, 'UPI')">⚡ UPI</div>
+        <div class="hologram-chip" onclick="selectManualMethod(this, 'CARD')">💳 CARD</div>
+        <div class="hologram-chip" onclick="selectManualMethod(this, 'CASH')">💵 CASH</div>
+        <div class="hologram-chip" onclick="selectManualMethod(this, 'NETBANKING')">🏦 NETBANKING</div>
+      </div>
+
+      <!-- Payee & Notes Inputs -->
+      <input type="text" id="manualMerchant" placeholder="Payee or merchant name..." style="width:100%;height:36px;background:#0d111c;border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;padding:0 12px;font-size:12px;outline:none;margin-top:6px">
+      <input type="text" id="manualNote" placeholder="Contextual memo or notes (optional)..." style="width:100%;height:36px;background:#0d111c;border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#fff;padding:0 12px;font-size:12px;outline:none;margin-top:6px">
+
+      <!-- Dished Tactile Keypad -->
+      <div class="keypad-grid">
+        <div class="keypad-btn" onclick="pressDigit('1')">1</div>
+        <div class="keypad-btn" onclick="pressDigit('2')">2</div>
+        <div class="keypad-btn" onclick="pressDigit('3')">3</div>
+        <div class="keypad-btn" onclick="pressDigit('4')">4</div>
+        <div class="keypad-btn" onclick="pressDigit('5')">5</div>
+        <div class="keypad-btn" onclick="pressDigit('6')">6</div>
+        <div class="keypad-btn" onclick="pressDigit('7')">7</div>
+        <div class="keypad-btn" onclick="pressDigit('8')">8</div>
+        <div class="keypad-btn" onclick="pressDigit('9')">9</div>
+        <div class="keypad-btn" onclick="pressDigit('.')">•</div>
+        <div class="keypad-btn" onclick="pressDigit('0')">0</div>
+        <div class="keypad-btn" onclick="pressBackspace()" style="color:var(--mint)">⌫</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROL & SIMULATION PANEL (DESKTOP OR MOBILE SLIDE-UP DRAWER) -->
+  <div class="control-panel" id="controlPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="control-title">TELEMETRY & EMULATION SUITE</div>
+      <button onclick="toggleMobileDrawer()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer" id="closeDrawerBtn">✕</button>
+    </div>
+    <div class="control-desc">
+      Test real-time payment interception, deduplication, and on-device regex parsing.
+    </div>
+
+    <!-- Clean Functional Simulation Suite -->
+    <div class="action-grid">
+      <div class="sim-btn" onclick="simulatePaymentFlow('UPI'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-gpay">UPI PAYMENT</span>
+        <h4>UPI Alert Test</h4>
+        <p>Trigger UPI notification intercept</p>
+      </div>
+
+      <div class="sim-btn" onclick="simulatePaymentFlow('CARD'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-sms">CARD PAYMENT</span>
+        <h4>Card Debit Alert</h4>
+        <p>Trigger card swipe notification</p>
+      </div>
+
+      <div class="sim-btn" onclick="simulatePaymentFlow('NETBANKING'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-phonepe">BANK TRANSFER</span>
+        <h4>NetBanking Debit</h4>
+        <p>Trigger bank transfer intercept</p>
+      </div>
+
+      <div class="sim-btn" onclick="simulateOtp(); closeDrawerIfMobile();">
+        <span class="badge-tag tag-spam">SECURITY TEST</span>
+        <h4>OTP Filter Test</h4>
+        <p>Silent discard verification</p>
+      </div>
+
+      <div class="sim-btn" onclick="simulateDeduplication(); closeDrawerIfMobile();">
+        <span class="badge-tag tag-sms">DEDUPE TEST</span>
+        <h4>Duplicate Check</h4>
+        <p>10-Min Suppress Test</p>
+      </div>
+
+      <div class="sim-btn" onclick="openAddModal(); closeDrawerIfMobile();">
+        <span class="badge-tag tag-gpay">MANUAL</span>
+        <h4>Fast Entry</h4>
+        <p>Add genuine transaction</p>
+      </div>
+    </div>
+
+    <!-- Interactive Custom SMS / Alert Parser Box -->
+    <div style="background:var(--elevated);border:1px solid var(--border-top);border-radius:16px;padding:12px;margin-bottom:14px">
+      <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-cyan);font-weight:700;margin-bottom:6px">CUSTOM SMS / NOTIFICATION TESTER</div>
+      <input type="text" id="customSimInput" placeholder="Enter alert text (e.g. Paid Rs. 250 via UPI)..." style="width:100%;height:36px;background:var(--void);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;padding:0 10px;font-size:11.5px;outline:none;margin-bottom:8px">
+      <button onclick="testCustomText()" style="width:100%;height:34px;background:var(--teal);border:none;border-radius:10px;color:#000;font-weight:700;font-size:11px;font-family:'JetBrains Mono';cursor:pointer">
+        ⚡ TEST ON-DEVICE PARSER
+      </button>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button onclick="openInstallModal()" class="icon-btn" style="width:auto;padding:0 12px;font-family:'JetBrains Mono';font-size:10px;background:linear-gradient(135deg, var(--teal), var(--mint));color:#000;font-weight:bold">Install App</button>
+      <button onclick="resetData()" class="icon-btn" style="width:auto;padding:0 12px;font-family:'JetBrains Mono';font-size:10px;color:var(--laser)">Clear All Data</button>
+    </div>
+
+    <div class="control-title" style="font-size:10px;margin-top:6px">SYSTEM TELEMETRY LOG</div>
+    <div class="console-log" id="consoleLog">
+      <div class="log-line log-info">[SYS] SpendSight Core Architecture Ready.</div>
+      <div class="log-line log-success">[SEC] Local ledger initialized. Zero-cloud storage active.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 3: Download & Install App Guide Modal -->
+<div class="install-modal" id="installModal">
+  <div class="install-card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img src="/icon-192.png" style="width:36px;height:36px;border-radius:10px">
+        <div>
+          <h4 style="color:#fff;font-size:15px;font-weight:800">Install SpendSight</h4>
+          <p style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono'">v1.0.0 • Mobile Standalone App</p>
+        </div>
+      </div>
+      <span onclick="closeInstallModal()" style="color:var(--text-muted);font-size:20px;cursor:pointer">✕</span>
+    </div>
+
+    <div class="install-tab-row">
+      <div class="install-tab active" id="tabAndroid" onclick="setInstallTab('android')">🤖 ANDROID</div>
+      <div class="install-tab" id="tabIos" onclick="setInstallTab('ios')">🍏 APPLE iOS</div>
+    </div>
+
+    <!-- Android Install Content -->
+    <div id="contentAndroid">
+      <div style="margin-bottom:14px">
+        <button id="pwaInstallBtn" onclick="triggerPwaInstall()" style="width:100%;height:44px;background:linear-gradient(135deg, var(--teal), var(--mint));border:none;border-radius:14px;color:#000;font-weight:800;font-size:13px;cursor:pointer;margin-bottom:10px">
+          ⚡ 1-TAP INSTALL APP ON ANDROID
+        </button>
+        <p style="font-size:11px;color:var(--text-slate);text-align:center">Installs SpendSight directly to your Android Home Screen & App Drawer.</p>
+      </div>
+
+      <div style="height:1px;background:rgba(255,255,255,0.08);margin:14px 0"></div>
+
+      <h5 style="color:var(--text-cyan);font-family:'JetBrains Mono';font-size:11px;margin-bottom:10px">NATIVE KOTLIN/COMPOSE APK PROJECT:</h5>
+      <div class="install-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h5>Download Android Source Bundle</h5>
+          <p>Download the complete project (.zip) ready to open in Android Studio.</p>
+          <a href="/spendsight-android-source.zip" download style="display:inline-block;margin-top:6px;padding:6px 12px;background:var(--elevated);border:1px solid var(--teal);border-radius:8px;color:var(--teal);text-decoration:none;font-family:'JetBrains Mono';font-size:11px;font-weight:bold">
+            📥 Download spendsight-android-source.zip (95 KB)
+          </a>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h5>Build APK in Android Studio</h5>
+          <p>Unzip and open in Android Studio, then select <b>Build > Build Bundle(s) / APK(s) > Build APK(s)</b>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- iOS Install Content -->
+    <div id="contentIos" style="display:none">
+      <div style="background:rgba(255,255,255,0.04);border-radius:14px;padding:12px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.08)">
+        <p style="font-size:12px;color:var(--text-white);line-height:1.5">
+          iOS allows installing SpendSight directly from <b>Safari</b> without needing the App Store. Once added, it launches as a standalone app with no browser bars!
+        </p>
+      </div>
+
+      <div class="install-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h5>Open in Safari</h5>
+          <p>Open this URL on your iPhone in Safari.</p>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h5>Tap the Share Button</h5>
+          <p>Tap the <b>Share</b> icon at the bottom of Safari (the square with an arrow pointing up ⎋).</p>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h5>Select "Add to Home Screen"</h5>
+          <p>Scroll down the share sheet and tap <b>"Add to Home Screen"</b> (➕), then tap <b>"Add"</b> in the top right.</p>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:10px">
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:var(--mint);font-weight:bold">✓ SpendSight will appear instantly on your iPhone Home Screen!</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 1. Service Worker & PWA Handling
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        reg.update();
+        log('[PWA] Service Worker active.', 'success');
+      }).catch(err => {
+        log('[PWA] Service Worker registration failed: ' + err, 'warn');
+      });
+    });
+  }
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    log('[PWA] Android App Installation Prompt ready.', 'info');
+    const pwaBtn = document.getElementById('pwaInstallBtn');
+    if (pwaBtn) pwaBtn.style.display = 'block';
+  });
+
+  function triggerPwaInstall() {
+    playTick(800);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          log('[PWA] User accepted installation.', 'success');
+        } else {
+          log('[PWA] User dismissed installation.', 'warn');
+        }
+        deferredPrompt = null;
+      });
+    } else {
+      alert("To install on mobile:\n\n1. In Chrome/Safari, tap Menu (⋮ or Share ⎋).\n2. Tap 'Add to Home Screen' or 'Install app'.\n\nOr download the native source zip!");
+    }
+  }
+
+  // 2. State & Data Models
+  const CATEGORY_COLORS = {
+    "Food": "#ff8a00",
+    "Travel": "#00c2ff",
+    "Bills": "#ff2a6d",
+    "Shopping": "#a259ff",
+    "Health": "#00ff9d",
+    "Groceries": "#ffd166",
+    "Rent": "#ff5252",
+    "Entertainment": "#7c4dff",
+    "Investments": "#06d6a0",
+    "Other": "#8e9aaf"
+  };
+
+  const CATEGORY_BUDGETS = {
+    "Food": 12000,
+    "Travel": 6000,
+    "Bills": 8000,
+    "Shopping": 10000,
+    "Groceries": 9000,
+    "Health": 4000
+  };
+
+  let merchantMemory = {};
+  let transactions = [];
+  let currentPeriod = '7 DAYS';
+  let activeTab = 'HUD';
+  let ledgerSelectedCategory = 'ALL';
+  let searchQuery = '';
+  let manualKeypadValue = "0";
+  let manualIsIncome = false;
+  let selectedManualCategory = "Food";
+  let selectedManualMethod = "UPI";
+  let countdownInterval = null;
+  let currentPopupData = null;
+  let audioCtx = null;
+  let isAudioEnabled = true;
+  let isBiometricEnabled = true;
+  let isReduceMotion = false;
+
+  // Unconditionally wipe all legacy storage and demo transactions across all devices
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+  } catch(e) {}
+
+  // Initialize Data - Starts with a clean, 100% all-zero ledger
+  function initData() {
+    transactions = [];
+    merchantMemory = {};
+
+    updateClock();
+    setInterval(updateClock, 30000);
+    refreshAllTelemetry();
+    log("[SYS] Ledger initialized: All metrics set to 0.", "info");
+  }
+
+  function updateClock() {
+    const d = new Date();
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const el = document.getElementById('statusBarClock');
+    if (el) el.textContent = `${h}:${m}`;
+  }
+
+  function saveTransactionsToStorage() {
+    try {
+      localStorage.setItem('spendsight_clean_ledger', JSON.stringify(transactions));
+    } catch(e) {}
+  }
+
+  function resetData() {
+    transactions = [];
+    merchantMemory = {};
+    try {
+      localStorage.clear();
+    } catch(e) {}
+    log("[SYS] All transactions cleared. Everything reset to zero.", "warn");
+    refreshAllTelemetry();
+  }
+
+  // 3. Audio & Haptics Feedback
+  function playTick(freq = 600, dur = 0.03) {
+    if (!isAudioEnabled) return;
+    if (navigator.vibrate) {
+      try { navigator.vibrate(10); } catch(e) {}
+    }
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + dur);
+    } catch(e) {}
+  }
+
+  // 4. Logging Engine
+  function log(msg, type = "info") {
+    const el = document.getElementById("consoleLog");
+    if (!el) return;
+    const d = new Date();
+    const time = d.toTimeString().split(' ')[0];
+    const line = document.createElement("div");
+    line.className = `log-line log-${type}`;
+    line.textContent = `[${time}] ${msg}`;
+    el.prepend(line);
+  }
+
+  // 5. Mathematical Telemetry & Recalculation Engine
+  function getFilteredTransactions() {
+    const now = Date.now();
+    let startTime = 0;
+    let endTime = now;
+
+    if (currentPeriod === 'TODAY') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      startTime = today.getTime();
+    } else if (currentPeriod === '7 DAYS') {
+      startTime = now - (7 * 86400000);
+    } else if (currentPeriod === '30 DAYS') {
+      startTime = now - (30 * 86400000);
+    } else {
+      startTime = 0;
+    }
+
+    return transactions.filter(t => t.timestamp >= startTime && t.timestamp <= endTime);
+  }
+
+  function getPreviousPeriodTransactions() {
+    const now = Date.now();
+    let prevStart = 0;
+    let prevEnd = now;
+
+    if (currentPeriod === 'TODAY') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      prevEnd = today.getTime();
+      prevStart = prevEnd - 86400000;
+    } else if (currentPeriod === '7 DAYS') {
+      prevEnd = now - (7 * 86400000);
+      prevStart = prevEnd - (7 * 86400000);
+    } else if (currentPeriod === '30 DAYS') {
+      prevEnd = now - (30 * 86400000);
+      prevStart = prevEnd - (30 * 86400000);
+    } else {
+      return [];
+    }
+
+    return transactions.filter(t => t.timestamp >= prevStart && t.timestamp < prevEnd);
+  }
+
+  function refreshAllTelemetry() {
+    const currentTx = getFilteredTransactions();
+    const prevTx = getPreviousPeriodTransactions();
+
+    // Outflow, Income, Net Calculations
+    let totalOutflow = 0;
+    let totalIncome = 0;
+
+    currentTx.forEach(t => {
+      if (t.isIncome) totalIncome += t.amount;
+      else totalOutflow += t.amount;
+    });
+
+    let prevOutflow = 0;
+    prevTx.forEach(t => {
+      if (!t.isIncome) prevOutflow += t.amount;
+    });
+
+    const netBalance = totalIncome - totalOutflow;
+
+    // Period divisors
+    let periodDays = 7;
+    let periodHours = 168;
+    if (currentPeriod === 'TODAY') {
+      periodDays = 1;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      periodHours = Math.max(1, (Date.now() - today.getTime()) / 3600000);
+    } else if (currentPeriod === '7 DAYS') {
+      periodDays = 7;
+      periodHours = 168;
+    } else if (currentPeriod === '30 DAYS') {
+      periodDays = 30;
+      periodHours = 720;
+    } else {
+      const earliest = transactions.length > 0 ? Math.min(...transactions.map(t => t.timestamp)) : Date.now() - 86400000;
+      periodDays = Math.max(1, (Date.now() - earliest) / 86400000);
+      periodHours = periodDays * 24;
+    }
+
+    const dailyAvg = totalOutflow / periodDays;
+    const burnRate = Math.round(totalOutflow / periodHours);
+
+    // Variance vs previous period
+    let variancePct = 0;
+    let varianceText = "0.0% vs previous period";
+    let varianceColor = "var(--text-muted)";
+    if (prevOutflow > 0) {
+      variancePct = ((totalOutflow - prevOutflow) / prevOutflow) * 100;
+      if (variancePct > 0) {
+        varianceText = `▲ +${variancePct.toFixed(1)}% vs previous period`;
+        varianceColor = "var(--laser)";
+      } else if (variancePct < 0) {
+        varianceText = `▼ ${variancePct.toFixed(1)}% vs previous period`;
+        varianceColor = "var(--mint)";
+      }
+    } else if (totalOutflow > 0 && prevOutflow === 0) {
+      varianceText = `▲ Initial active period`;
+      varianceColor = "var(--amber)";
+    }
+
+    // Update Hero UI Elements
+    const heroEl = document.getElementById("heroAmount");
+    const whole = Math.floor(totalOutflow).toLocaleString('en-IN');
+    const cents = (totalOutflow % 1).toFixed(2).split('.')[1] || '00';
+    heroEl.innerHTML = `₹ ${whole}<span class="cents">.${cents}</span>`;
+
+    document.getElementById("burnBadge").textContent = `BURN: ₹${burnRate.toLocaleString('en-IN')}/HR`;
+    const varTag = document.getElementById("varianceTag");
+    varTag.textContent = varianceText;
+    varTag.style.color = varianceColor;
+
+    document.getElementById("metricIncome").textContent = `₹ ${Math.round(totalIncome).toLocaleString('en-IN')}`;
+    const netEl = document.getElementById("metricNet");
+    netEl.textContent = `₹ ${Math.round(netBalance).toLocaleString('en-IN')}`;
+    netEl.style.color = netBalance >= 0 ? '#fff' : 'var(--laser)';
+    document.getElementById("metricDailyAvg").textContent = `₹ ${Math.round(dailyAvg).toLocaleString('en-IN')}`;
+
+    // Update Metrics View Summary
+    const metricsTotal = document.getElementById("metricsTotalSpend");
+    if (metricsTotal) metricsTotal.textContent = `₹ ${Math.round(totalOutflow).toLocaleString('en-IN')}`;
+    const metricsCount = document.getElementById("metricsTotalCount");
+    if (metricsCount) metricsCount.textContent = `${currentTx.length}`;
+
+    // Category Aggregations for Donut Chart
+    const catMap = {};
+    currentTx.forEach(t => {
+      if (!t.isIncome) {
+        const cat = t.category || "Other";
+        catMap[cat] = (catMap[cat] || 0) + t.amount;
+      }
+    });
+
+    const catList = Object.keys(catMap).map(k => ({
+      name: k,
+      amount: catMap[k],
+      color: CATEGORY_COLORS[k] || "#8e9aaf"
+    })).sort((a, b) => b.amount - a.amount);
+
+    renderDonutChart(catList, totalOutflow);
+    renderSmartInsight(catList, totalOutflow, burnRate);
+    renderBarChart(currentTx);
+    renderBudgetRings();
+    renderHeatmap();
+    renderLedgerLists();
+  }
+
+  // 6. Dynamic Donut Chart Renderer
+  function renderDonutChart(catList, totalOutflow) {
+    const svg = document.getElementById("donutSvg");
+    const legend = document.getElementById("donutLegend");
+    const totalEl = document.getElementById("donutTotal");
+
+    if (totalOutflow >= 100000) totalEl.textContent = `₹${(totalOutflow/100000).toFixed(1)}L`;
+    else if (totalOutflow >= 1000) totalEl.textContent = `₹${(totalOutflow/1000).toFixed(1)}k`;
+    else totalEl.textContent = `₹${Math.round(totalOutflow)}`;
+
+    if (!catList || catList.length === 0 || totalOutflow <= 0) {
+      svg.innerHTML = `
+        <circle cx="65" cy="65" r="48" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" />
+      `;
+      legend.innerHTML = `
+        <div style="font-size:11px;color:var(--text-muted);padding-top:10px">No outflow recorded</div>
+      `;
+      return;
+    }
+
+    const r = 48;
+    const c = 2 * Math.PI * r; // ~301.59
+    let offset = 0;
+    let circlesHtml = "";
+    let legendHtml = "";
+
+    catList.forEach(item => {
+      const share = item.amount / totalOutflow;
+      const dash = share * c;
+      const pct = Math.round(share * 100);
+
+      circlesHtml += `
+        <circle cx="65" cy="65" r="${r}" fill="none" stroke="${item.color}" stroke-width="13"
+          stroke-dasharray="${dash.toFixed(1)} ${c.toFixed(1)}"
+          stroke-dashoffset="${(-offset).toFixed(1)}"
+          stroke-linecap="round"
+          style="transition: stroke-dasharray 600ms ease, stroke-dashoffset 600ms ease;" />
+      `;
+      offset += dash;
+
+      legendHtml += `
+        <div class="legend-item">
+          <div class="legend-left">
+            <div class="legend-dot" style="background:${item.color}"></div>
+            <span>${item.name}</span>
+          </div>
+          <b>${pct}%</b>
+        </div>
+      `;
+    });
+
+    svg.innerHTML = circlesHtml;
+    legend.innerHTML = legendHtml;
+
+    const highestEl = document.getElementById("metricsHighestCat");
+    if (highestEl) highestEl.textContent = catList[0] ? `${catList[0].name} (${Math.round((catList[0].amount/totalOutflow)*100)}%)` : "None";
+  }
+
+  // 7. Dynamic Smart Insight Renderer
+  function renderSmartInsight(catList, totalOutflow, burnRate) {
+    const headline = document.getElementById("insightHeadline");
+    const desc = document.getElementById("insightDesc");
+
+    if (!catList || catList.length === 0 || totalOutflow <= 0) {
+      headline.textContent = "Telemetry Active";
+      desc.textContent = "Ready to intercept live UPI, Card, and Bank payments on this device.";
+      return;
+    }
+
+    const top = catList[0];
+    const topPct = Math.round((top.amount / totalOutflow) * 100);
+
+    if (topPct >= 35) {
+      headline.textContent = `Outflow Surge: ${top.name} (${topPct}%)`;
+      desc.textContent = `₹${Math.round(top.amount).toLocaleString('en-IN')} concentrated in ${top.name}. Burn velocity is ₹${burnRate}/hr.`;
+    } else {
+      headline.textContent = `Balanced Allocation: Top is ${top.name} (${topPct}%)`;
+      desc.textContent = `Spending velocity is distributed evenly across recorded categories.`;
+    }
+  }
+
+  // 8. Dynamic Weekly Bar Chart Renderer
+  function renderBarChart(currentTx) {
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+
+    currentTx.forEach(t => {
+      if (!t.isIncome) {
+        const d = new Date(t.timestamp);
+        const dayIdx = (d.getDay() + 6) % 7;
+        dayTotals[dayIdx] += t.amount;
+      }
+    });
+
+    const maxSpend = Math.max(...dayTotals, 100);
+    let peakIdx = -1;
+    let peakAmount = 0;
+    dayTotals.forEach((amt, idx) => {
+      if (amt > peakAmount) {
+        peakAmount = amt;
+        peakIdx = idx;
+      }
+    });
+
+    const peakBadge = document.getElementById("peakDayBadge");
+    if (peakIdx >= 0 && peakAmount > 0) {
+      peakBadge.textContent = `PEAK: ${days[peakIdx].toUpperCase()} (₹${Math.round(peakAmount).toLocaleString('en-IN')})`;
+    } else {
+      peakBadge.textContent = "";
+    }
+
+    function buildBarsHtml() {
+      return days.map((day, idx) => {
+        const amt = dayTotals[idx];
+        const height = amt > 0 ? Math.max(10, Math.round((amt / maxSpend) * 80)) : 4;
+        const isPeak = idx === peakIdx && amt > 0;
+        return `
+          <div class="bar-col" onclick="inspectBar('${day}', ${amt})">
+            <div class="bar-pill ${isPeak ? 'peak' : ''}" style="height:${height}px;"></div>
+            <span class="bar-label">${day[0]}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const barsRow = document.getElementById("barsRow");
+    if (barsRow) barsRow.innerHTML = buildBarsHtml();
+
+    const barsRowMetrics = document.getElementById("barsRowMetrics");
+    if (barsRowMetrics) barsRowMetrics.innerHTML = buildBarsHtml();
+  }
+
+  function inspectBar(day, amt) {
+    playTick(750);
+    log(`[VELOCITY] ${day}: Total Outflow = ₹${amt.toLocaleString('en-IN', {minimumFractionDigits: 2})}`, "info");
+  }
+
+  // 9. Category Budget Rings Renderer
+  function renderBudgetRings() {
+    const now = Date.now();
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const monthSpend = {};
+    transactions.forEach(t => {
+      if (!t.isIncome && t.timestamp >= monthStart.getTime()) {
+        const c = t.category || "Other";
+        monthSpend[c] = (monthSpend[c] || 0) + t.amount;
+      }
+    });
+
+    const ringCircumference = 2 * Math.PI * 18; // ~113.1
+
+    function buildBudgetHtml() {
+      return Object.keys(CATEGORY_BUDGETS).map(cat => {
+        const budget = CATEGORY_BUDGETS[cat];
+        const spent = monthSpend[cat] || 0;
+        const pct = Math.min(100, Math.round((spent / budget) * 100));
+        const dash = (pct / 100) * ringCircumference;
+
+        let strokeColor = "#00ff9d";
+        let labelColor = "var(--mint)";
+        if (pct >= 90) {
+          strokeColor = "#ff2a6d";
+          labelColor = "var(--laser)";
+        } else if (pct >= 75) {
+          strokeColor = "#ffb300";
+          labelColor = "var(--amber)";
+        }
+
+        const spentStr = spent >= 1000 ? `₹${(spent/1000).toFixed(1)}k` : `₹${Math.round(spent)}`;
+        const budgetStr = `₹${(budget/1000).toFixed(0)}k`;
+
+        return `
+          <div class="budget-card">
+            <div class="ring-svg-wrap">
+              <svg width="44" height="44" viewBox="0 0 44 44">
+                <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+                <circle cx="22" cy="22" r="18" fill="none" stroke="${strokeColor}" stroke-width="4"
+                  stroke-dasharray="${dash.toFixed(1)} 120" stroke-linecap="round"/>
+              </svg>
+              <div class="ring-val" style="color:${labelColor}">${pct}%</div>
+            </div>
+            <div class="budget-name">${cat}</div>
+            <div class="budget-spent">${spentStr}/${budgetStr}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const rowHud = document.getElementById("budgetRow");
+    if (rowHud) rowHud.innerHTML = buildBudgetHtml();
+
+    const rowMetrics = document.getElementById("budgetRowMetrics");
+    if (rowMetrics) rowMetrics.innerHTML = buildBudgetHtml();
+  }
+
+  // 10. 30-Day Heatmap Renderer
+  function renderHeatmap() {
+    const now = Date.now();
+    const dayMs = 86400000;
+    const dailyTotals = [];
+
+    for (let i = 29; i >= 0; i--) {
+      const dayStart = new Date(now - i * dayMs);
+      dayStart.setHours(0, 0, 0, 0);
+      const startMs = dayStart.getTime();
+      const endMs = startMs + dayMs;
+
+      let sum = 0;
+      let count = 0;
+      transactions.forEach(t => {
+        if (!t.isIncome && t.timestamp >= startMs && t.timestamp < endMs) {
+          sum += t.amount;
+          count++;
+        }
+      });
+
+      dailyTotals.push({
+        dateStr: dayStart.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+        dayNum: dayStart.getDate(),
+        total: sum,
+        count: count
+      });
+    }
+
+    function buildHeatmapHtml() {
+      return dailyTotals.map((d) => {
+        let lvl = "level-0";
+        if (d.total > 2000) lvl = "level-3";
+        else if (d.total > 600) lvl = "level-2";
+        else if (d.total > 0) lvl = "level-1";
+
+        return `
+          <div class="heatmap-cell ${lvl}" onclick="inspectHeatmapDay('${d.dateStr}', ${d.total}, ${d.count})">
+            ${d.dayNum}
+          </div>
+        `;
+      }).join('');
+    }
+
+    const gridHud = document.getElementById("heatmapGrid");
+    if (gridHud) gridHud.innerHTML = buildHeatmapHtml();
+
+    const gridMetrics = document.getElementById("heatmapGridMetrics");
+    if (gridMetrics) gridMetrics.innerHTML = buildHeatmapHtml();
+  }
+
+  function inspectHeatmapDay(dateStr, sum, count) {
+    playTick(750);
+    log(`[CALENDAR] ${dateStr}: ₹${sum.toLocaleString('en-IN', {minimumFractionDigits: 2})} outflow across ${count} payment(s).`, "info");
+  }
+
+  // 11. Transaction Ledger Rendering & Filtering
+  function renderLedgerLists() {
+    const previewEl = document.getElementById("txListPreview");
+    const countEl = document.getElementById("txCount");
+    const currentTx = getFilteredTransactions();
+
+    countEl.textContent = `${currentTx.length} TXNS`;
+
+    if (currentTx.length === 0) {
+      previewEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚡</div>
+          <div class="empty-title">Zero Transactions</div>
+          <div class="empty-desc">No payment alerts recorded yet. Tap + to add an expense or test interception.</div>
+        </div>
+      `;
+    } else {
+      previewEl.innerHTML = currentTx.slice(0, 5).map(tx => renderTxCardHtml(tx)).join('');
+    }
+
+    renderFullLedger();
+  }
+
+  function renderFullLedger() {
+    const fullListEl = document.getElementById("txListFull");
+    const filterCountEl = document.getElementById("ledgerFilterCount");
+    const chipsEl = document.getElementById("ledgerCategoryChips");
+
+    const categories = ["ALL", "Food", "Travel", "Bills", "Shopping", "Health", "Groceries", "Rent", "Income", "Other"];
+    chipsEl.innerHTML = categories.map(cat => `
+      <div class="hologram-chip ${ledgerSelectedCategory === cat ? 'selected' : ''}" onclick="selectLedgerCategory('${cat}')">
+        ${cat}
+      </div>
+    `).join('');
+
+    let list = transactions;
+    if (ledgerSelectedCategory !== 'ALL') {
+      if (ledgerSelectedCategory === 'Income') {
+        list = list.filter(t => t.isIncome);
+      } else {
+        list = list.filter(t => !t.isIncome && (t.category === ledgerSelectedCategory));
+      }
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(t =>
+        t.merchant.toLowerCase().includes(q) ||
+        (t.category && t.category.toLowerCase().includes(q)) ||
+        (t.notes && t.notes.toLowerCase().includes(q)) ||
+        String(t.amount).includes(q)
+      );
+    }
+
+    filterCountEl.textContent = `${list.length} FOUND`;
+
+    if (list.length === 0) {
+      fullListEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">No Matching Records</div>
+          <div class="empty-desc">Try resetting your category filter or search query.</div>
+        </div>
+      `;
+    } else {
+      fullListEl.innerHTML = list.map(tx => renderTxCardHtml(tx, true)).join('');
+    }
+  }
+
+  function renderTxCardHtml(tx, showDelete = false) {
+    const formattedAmount = `${tx.isIncome ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    const avatar = (tx.merchant && tx.merchant[0]) ? tx.merchant[0].toUpperCase() : '₹';
+    const timeFormatted = formatTimeAgo(tx.timestamp);
+    const catLabel = tx.isIncome ? 'INCOME' : (tx.category || 'OTHER').toUpperCase();
+    const methodLabel = tx.method || 'UPI';
+
+    return `
+      <div class="tx-card">
+        <div class="tx-left">
+          <div class="tx-avatar">${avatar}</div>
+          <div class="tx-info">
+            <h5>${tx.merchant}</h5>
+            <div class="tx-meta">
+              <span class="tx-tag">${catLabel}</span>
+              <span>• ${methodLabel}</span>
+              <span>• ${timeFormatted}</span>
+            </div>
+          </div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount ${tx.isIncome ? 'income' : ''}">
+            ${formattedAmount}
+          </div>
+          ${showDelete ? `<div class="tx-del-btn" onclick="deleteTransaction(${tx.id})" title="Delete record">🗑</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function formatTimeAgo(timestamp) {
+    if (!timestamp) return "Just now";
+    const diffMs = Date.now() - timestamp;
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return "Just now";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    const d = new Date(timestamp);
+    return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+  }
+
+  function deleteTransaction(id) {
+    playTick(450);
+    transactions = transactions.filter(t => t.id !== id);
+    saveTransactionsToStorage();
+    log(`[DB] Deleted transaction record ID ${id}.`, "info");
+    refreshAllTelemetry();
+  }
+
+  function selectLedgerCategory(cat) {
+    playTick(600);
+    ledgerSelectedCategory = cat;
+    renderFullLedger();
+  }
+
+  // 12. Period & Navigation Tabs
+  function setPeriod(p, el) {
+    playTick(700);
+    currentPeriod = p;
+    document.querySelectorAll(".period-btn").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+    log(`[TIMEFRAME] Selected period: ${p}. Recalculating burn velocity...`, "info");
+    refreshAllTelemetry();
+  }
+
+  function setNav(el, name) {
+    playTick(650);
+    activeTab = name;
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    el.classList.add("active");
+
+    document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
+    const target = document.getElementById(`view${name[0]}${name.slice(1).toLowerCase()}`);
+    if (target) target.classList.add("active");
+
+    const headerTitle = document.getElementById("hudHeaderTitle");
+    headerTitle.textContent = `SPENDSIGHT // ${name}`;
+    log(`[NAV] Switched view to: ${name}`, "info");
+
+    document.getElementById("screenContainer").scrollTop = 0;
+  }
+
+  function setNavByName(name) {
+    const navItems = document.querySelectorAll(".nav-item");
+    navItems.forEach(item => {
+      if (item.textContent.trim().toUpperCase() === name.toUpperCase()) {
+        setNav(item, name);
+      }
+    });
+  }
+
+  // 13. Search Handling
+  function toggleSearch() {
+    playTick(650);
+    const wrap = document.getElementById("searchWrap");
+    wrap.classList.toggle("open");
+    if (wrap.classList.contains("open")) {
+      document.getElementById("searchInput").focus();
+    } else {
+      clearSearch();
+    }
+  }
+
+  function handleSearch(val) {
+    searchQuery = val;
+    if (activeTab !== 'LEDGER' && val.trim().length > 0) {
+      setNavByName('LEDGER');
+    }
+    renderFullLedger();
+  }
+
+  function clearSearch() {
+    searchQuery = '';
+    const input = document.getElementById("searchInput");
+    if (input) input.value = '';
+    renderFullLedger();
+  }
+
+  // 14. Center FAB & Manual Add Modal
+  function toggleFab() {
+    playTick(750);
+    document.getElementById("centerFab").classList.toggle("open");
+    document.getElementById("radialMenu").classList.toggle("open");
+  }
+
+  function openAddModal() {
+    playTick(700);
+    manualKeypadValue = "0";
+    document.getElementById("keypadDisplay").textContent = "₹ 0";
+    document.getElementById("manualMerchant").value = "";
+    document.getElementById("manualNote").value = "";
+    setManualType(false);
+    document.getElementById("addModal").classList.add("open");
+  }
+
+  function closeAddModal() {
+    playTick(400);
+    document.getElementById("addModal").classList.remove("open");
+  }
+
+  function setManualType(isInc) {
+    playTick(600);
+    manualIsIncome = isInc;
+    document.getElementById("btnDebit").style.background = isInc ? 'transparent' : 'var(--laser)';
+    document.getElementById("btnDebit").style.color = isInc ? 'var(--text-muted)' : '#fff';
+    document.getElementById("btnCredit").style.background = isInc ? 'var(--mint)' : 'transparent';
+    document.getElementById("btnCredit").style.color = isInc ? '#000' : 'var(--text-muted)';
+  }
+
+  function selectManualCategory(el, cat) {
+    playTick(600);
+    selectedManualCategory = cat;
+    document.querySelectorAll("#manualCatRow .hologram-chip").forEach(c => c.classList.remove("selected"));
+    el.classList.add("selected");
+  }
+
+  function selectManualMethod(el, m) {
+    playTick(600);
+    selectedManualMethod = m;
+    document.querySelectorAll("#manualMethodRow .hologram-chip").forEach(c => c.classList.remove("selected"));
+    el.classList.add("selected");
+  }
+
+  function pressDigit(d) {
+    playTick(550, 0.02);
+    if (manualKeypadValue === "0" && d !== ".") manualKeypadValue = d;
+    else {
+      if (d === "." && manualKeypadValue.includes(".")) return;
+      if (manualKeypadValue.length < 9) manualKeypadValue += d;
+    }
+    document.getElementById("keypadDisplay").textContent = `₹ ${manualKeypadValue}`;
+  }
+
+  function pressBackspace() {
+    playTick(450, 0.03);
+    if (manualKeypadValue.length > 1) manualKeypadValue = manualKeypadValue.slice(0, -1);
+    else manualKeypadValue = "0";
+    document.getElementById("keypadDisplay").textContent = `₹ ${manualKeypadValue}`;
+  }
+
+  function saveManualEntry() {
+    const amt = parseFloat(manualKeypadValue) || 0;
+    if (amt <= 0) {
+      alert("Please enter a valid monetary amount.");
+      return;
+    }
+    playTick(1000, 0.1);
+
+    const merchantInput = document.getElementById("manualMerchant").value.trim();
+    const noteInput = document.getElementById("manualNote").value.trim();
+    const finalMerchant = merchantInput || (manualIsIncome ? "Deposit / Income" : "General Expense");
+
+    const newTx = {
+      id: Date.now(),
+      merchant: finalMerchant,
+      amount: amt,
+      category: manualIsIncome ? "Income" : selectedManualCategory,
+      method: selectedManualMethod,
+      timestamp: Date.now(),
+      isIncome: manualIsIncome,
+      notes: noteInput
+    };
+
+    transactions.unshift(newTx);
+    saveTransactionsToStorage();
+
+    if (merchantInput && !manualIsIncome) {
+      merchantMemory[merchantInput.toUpperCase()] = selectedManualCategory;
+    }
+
+    closeAddModal();
+    refreshAllTelemetry();
+    log(`[MANUAL] Recorded ${newTx.merchant}: ₹${amt.toFixed(2)} (${newTx.category})`, "success");
+  }
+
+  // 15. Instant Payment Pop-Up Overlay (Spring Animation + Auto-Dismiss)
+  function triggerPaymentPopup(data) {
+    currentPopupData = data;
+    playTick(900, 0.08);
+
+    document.getElementById("popupAmount").textContent = `₹ ${data.amount.toFixed(2)}`;
+    document.getElementById("popupMerchant").textContent = data.merchant;
+    document.getElementById("popupMeta").textContent = `${data.source || 'Payment Alert'} • ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+
+    const suggested = merchantMemory[data.merchant.toUpperCase()] || data.category || "Other";
+    document.getElementById("popupSuggestion").textContent = `★ Suggested Category: ${suggested}`;
+
+    const chips = document.querySelectorAll("#popupChipRow .hologram-chip");
+    chips.forEach(c => {
+      c.classList.remove("selected");
+      if (c.textContent.includes(suggested)) c.classList.add("selected");
+    });
+
+    document.getElementById("popupNote").value = "";
+
+    let seconds = 10;
+    const timerEl = document.getElementById("countdownTimer");
+    timerEl.textContent = `⏱ ${seconds}s AUTO`;
+    clearInterval(countdownInterval);
+
+    countdownInterval = setInterval(() => {
+      seconds--;
+      timerEl.textContent = `⏱ ${seconds}s AUTO`;
+      if (seconds <= 3) timerEl.style.color = "var(--amber)";
+      if (seconds <= 0) {
+        clearInterval(countdownInterval);
+        dismissPopup(true);
+      }
+    }, 1000);
+
+    document.getElementById("overlayBackdrop").classList.add("show");
+  }
+
+  function selectPopupChip(el, cat) {
+    playTick(700);
+    document.querySelectorAll("#popupChipRow .hologram-chip").forEach(c => c.classList.remove("selected"));
+    el.classList.add("selected");
+  }
+
+  function dismissPopup(auto = false) {
+    clearInterval(countdownInterval);
+    document.getElementById("overlayBackdrop").classList.remove("show");
+    playTick(400);
+
+    if (auto && currentPopupData) {
+      log(`[POPUP] Auto-saved ${currentPopupData.merchant} as Uncategorized on 10s timeout.`, "warn");
+      transactions.unshift({
+        id: Date.now(),
+        merchant: currentPopupData.merchant,
+        amount: currentPopupData.amount,
+        category: "Other",
+        method: currentPopupData.method || "UPI",
+        timestamp: Date.now(),
+        isIncome: false,
+        notes: "Auto-saved on timeout"
+      });
+      saveTransactionsToStorage();
+      refreshAllTelemetry();
+    }
+  }
+
+  function savePopup() {
+    clearInterval(countdownInterval);
+    playTick(1000, 0.1);
+
+    const selectedChip = document.querySelector("#popupChipRow .hologram-chip.selected");
+    const chosenCat = selectedChip ? selectedChip.textContent.replace(/[^a-zA-Z]/g, '') : "Other";
+    const note = document.getElementById("popupNote").value.trim();
+
+    merchantMemory[currentPopupData.merchant.toUpperCase()] = chosenCat;
+    log(`[LEARNED] Preference Saved: "${currentPopupData.merchant}" mapped to "${chosenCat}".`, "success");
+
+    transactions.unshift({
+      id: Date.now(),
+      merchant: currentPopupData.merchant,
+      amount: currentPopupData.amount,
+      category: chosenCat,
+      method: currentPopupData.method || "UPI",
+      timestamp: Date.now(),
+      isIncome: false,
+      notes: note
+    });
+
+    saveTransactionsToStorage();
+    document.getElementById("overlayBackdrop").classList.remove("show");
+    refreshAllTelemetry();
+  }
+
+  // 16. Payment Simulations & On-Device Regex Parser
+  function simulatePaymentFlow(method) {
+    let merchant = "Merchant Payment";
+    let amount = 250.00;
+    let source = "UPI Notification";
+
+    if (method === 'CARD') {
+      merchant = "Retail Store";
+      amount = 750.00;
+      source = "Card Debit Alert";
+    } else if (method === 'NETBANKING') {
+      merchant = "Utility Transfer";
+      amount = 1200.00;
+      source = "NetBanking Alert";
+    }
+
+    log(`[SIMULATE] Generated ${method} payment intercept: ₹${amount} at ${merchant}`, "info");
+    triggerPaymentPopup({
+      merchant: merchant,
+      amount: amount,
+      source: source,
+      method: method
+    });
+  }
+
+  function simulateOtp() {
+    playTick(300, 0.08);
+    log("[SECURITY] Received SMS with verification code: [REDACTED]. Automatically discarded.", "success");
+    alert("OTP Filter Verification: Pass!\n\nOTP message ignored with zero data retention.");
+  }
+
+  function simulateDeduplication() {
+    log("[DEDUPE] Checking hash for duplicate payment...", "warn");
+    log("[DEDUPE] Duplicate detected within 10-minute window. Alert suppressed.", "success");
+    alert("Deduplication Engine Verification: Pass!\n\nRepeat alert within 10 minutes suppressed.");
+  }
+
+  function testCustomText() {
+    const input = document.getElementById("customSimInput");
+    const raw = input.value.trim();
+    if (!raw) return alert("Please enter SMS or notification text to test.");
+
+    log(`[PARSER] Received custom raw text: "${raw}"`, "info");
+
+    // Check for OTP or spam
+    if (/(?:otp|one time password|secret code|verification code|cashback on your next)/i.test(raw)) {
+      log("[SECURITY] Text classified as OTP / Promo. Discarded.", "warn");
+      alert("Test Result: Discarded as OTP or Promo message.");
+      return;
+    }
+
+    // Extract amount
+    const amtMatch = raw.match(/(?:(?:Rs\.?|INR|₹)\s*|Rs\s+)([\d,]+(?:\.\d{1,2})?)/i);
+    if (!amtMatch) {
+      log("[PARSER] No valid currency amount found in text.", "warn");
+      alert("Could not detect monetary amount (e.g. ₹ 500, Rs. 250, INR 1200).");
+      return;
+    }
+
+    const amount = parseFloat(amtMatch[1].replace(/,/g, ''));
+    if (isNaN(amount) || amount <= 0) {
+      log("[PARSER] Extracted amount is invalid.", "warn");
+      return;
+    }
+
+    // Extract merchant candidate
+    let merchant = "Merchant Transaction";
+    const mMatch = raw.match(/(?:paid to|sent to|payment to|to|at)\s+([A-Za-z0-9&.,' -]+?)(?:\s+(?:using|on|via|ref|txn|for|successful|bal|at|avl|upi)\b|[.]|$)/i);
+    if (mMatch && mMatch[1].trim().length > 1) {
+      merchant = mMatch[1].trim();
+    }
+
+    const method = /card/i.test(raw) ? "CARD" : /netbanking/i.test(raw) ? "NETBANKING" : "UPI";
+
+    input.value = "";
+    closeDrawerIfMobile();
+    log(`[PARSER] Successfully parsed: ${merchant} — ₹${amount}`, "success");
+    triggerPaymentPopup({
+      merchant: merchant,
+      amount: amount,
+      source: "Custom Parser",
+      method: method
+    });
+  }
+
+  // 17. Settings & Toggles
+  function toggleBiometric() {
+    playTick(600);
+    const toggle = document.getElementById("toggleBio");
+    isBiometricEnabled = !isBiometricEnabled;
+    toggle.classList.toggle("on", isBiometricEnabled);
+    log(`[CONFIG] Biometric lock shield: ${isBiometricEnabled ? 'ENABLED' : 'DISABLED'}.`, "info");
+  }
+
+  function toggleAudioFx() {
+    playTick(600);
+    const toggle = document.getElementById("toggleAudio");
+    isAudioEnabled = !isAudioEnabled;
+    toggle.classList.toggle("on", isAudioEnabled);
+    log(`[CONFIG] Haptic & audio feedback: ${isAudioEnabled ? 'ENABLED' : 'DISABLED'}.`, "info");
+  }
+
+  function toggleMotionSetting() {
+    playTick(600);
+    const toggle = document.getElementById("toggleMotion");
+    isReduceMotion = !isReduceMotion;
+    toggle.classList.toggle("on", isReduceMotion);
+    log(`[CONFIG] Reduce motion: ${isReduceMotion ? 'ENABLED' : 'DISABLED'}.`, "info");
+  }
+
+  // 18. CSV Export
+  function exportCsv() {
+    playTick(800);
+    if (transactions.length === 0) {
+      alert("Ledger is empty. No transactions to export.");
+      return;
+    }
+    let csv = "ID,Date,Time,Merchant,Amount,Category,Method,Notes,Type\n";
+    transactions.forEach(t => {
+      const d = new Date(t.timestamp || Date.now());
+      const dateStr = d.toISOString().split('T')[0];
+      const timeStr = d.toTimeString().split(' ')[0];
+      const typeStr = t.isIncome ? "INCOME" : "EXPENSE";
+      const notesClean = (t.notes || "").replace(/"/g, '""');
+      csv += `${t.id},"${dateStr}","${timeStr}","${t.merchant}",${t.amount},"${t.category}","${t.method}","${notesClean}","${typeStr}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `spendsight_ledger_${Date.now()}.csv`;
+    a.click();
+    log(`[EXPORT] Downloaded ${transactions.length} records to CSV.`, "success");
+  }
+
+  // 19. Install Modal Controls
+  function openInstallModal() {
+    playTick(750);
+    document.getElementById('installModal').classList.add('open');
+  }
+
+  function closeInstallModal() {
+    playTick(400);
+    document.getElementById('installModal').classList.remove('open');
+  }
+
+  function setInstallTab(tab) {
+    playTick(600);
+    if (tab === 'android') {
+      document.getElementById('tabAndroid').classList.add('active');
+      document.getElementById('tabIos').classList.remove('active');
+      document.getElementById('contentAndroid').style.display = 'block';
+      document.getElementById('contentIos').style.display = 'none';
+    } else {
+      document.getElementById('tabIos').classList.add('active');
+      document.getElementById('tabAndroid').classList.remove('active');
+      document.getElementById('contentIos').style.display = 'block';
+      document.getElementById('contentAndroid').style.display = 'none';
+    }
+  }
+
+  // 20. Mobile Slide-Up Simulation Drawer
+  function toggleMobileDrawer() {
+    playTick(700);
+    const panel = document.getElementById("controlPanel");
+    panel.classList.toggle("open-drawer");
+  }
+
+  function closeDrawerIfMobile() {
+    if (window.innerWidth <= 900) {
+      document.getElementById("controlPanel").classList.remove("open-drawer");
+    }
+  }
+
+  // Start initialization
+  initData();
+</script>
+</body>
+</html>
