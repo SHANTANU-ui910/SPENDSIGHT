@@ -109,6 +109,7 @@ fun PaymentOverlayContent(
     upiRef: String?,
     accountLast4: String?,
     timestamp: Long,
+    isIncome: Boolean = false,
     autoDismissDurationSeconds: Int = 10,
     onSave: (selectedCategoryId: Long, note: String) -> Unit,
     onSkip: () -> Unit
@@ -207,12 +208,12 @@ fun PaymentOverlayContent(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(HyperTeal)
+                            .background(if (isIncome) PhosphorMint else HyperTeal)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "NEW PAYMENT INTERCEPTED",
-                        color = TextTechnicalCyan,
+                        text = if (isIncome) "PAYMENT RECEIVED // INFLOW" else "NEW PAYMENT INTERCEPTED",
+                        color = if (isIncome) PhosphorMint else TextTechnicalCyan,
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
@@ -226,7 +227,7 @@ fun PaymentOverlayContent(
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(24.dp)) {
                         CircularProgressIndicator(
                             progress = { progressFraction },
-                            color = if (secondsRemaining <= 3) SolarAmber else HyperTeal,
+                            color = if (secondsRemaining <= 3) SolarAmber else (if (isIncome) PhosphorMint else HyperTeal),
                             trackColor = Color.White.copy(alpha = 0.1f),
                             strokeWidth = 2.5.dp,
                             modifier = Modifier.size(24.dp)
@@ -254,8 +255,8 @@ fun PaymentOverlayContent(
             if (!isSavedState) {
                 // Primary Amount Display with Pulsing Motion
                 Text(
-                    text = formatChromaCurrency(amount, showDecimals = true),
-                    color = TextPureWhite,
+                    text = (if (isIncome) "+ " else "- ") + formatChromaCurrency(amount, showDecimals = true),
+                    color = if (isIncome) PhosphorMint else TextPureWhite,
                     fontSize = 36.sp,
                     fontFamily = FontFamily.SansSerif,
                     fontWeight = FontWeight.ExtraBold,
@@ -266,7 +267,7 @@ fun PaymentOverlayContent(
 
                 // Merchant & Account Metadata Pill
                 Text(
-                    text = merchant,
+                    text = if (isIncome) "From: $merchant" else merchant,
                     color = TextPureWhite,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold

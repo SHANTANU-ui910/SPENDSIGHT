@@ -88,12 +88,16 @@ class PaymentOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
         val upiRef = intent?.getStringExtra(SpendNotificationListenerService.EXTRA_UPI_REF)
         val accountLast4 = intent?.getStringExtra(SpendNotificationListenerService.EXTRA_ACCOUNT_LAST4)
         val timestamp = intent?.getLongExtra(SpendNotificationListenerService.EXTRA_TIMESTAMP, System.currentTimeMillis()) ?: System.currentTimeMillis()
+        val isIncome = intent?.getBooleanExtra(SpendNotificationListenerService.EXTRA_IS_INCOME, false) ?: false
 
         // 1. Post Foreground Notification to satisfy Android platform service lifecycle
+        val notifTitle = if (isIncome) "💰 Inflow Auto-Logged: ₹${amount.toInt()}" else "⚡ Outflow Auto-Logged: ₹${amount.toInt()}"
+        val notifBody = if (isIncome) "Received from $merchant" else "Paid to $merchant"
+
         val foregroundNotif = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Payment Detected: ₹${amount.toInt()}")
-            .setContentText("Categorizing payment to $merchant")
+            .setContentTitle(notifTitle)
+            .setContentText(notifBody)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setOngoing(false)
             .setAutoCancel(true)
@@ -111,7 +115,8 @@ class PaymentOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
                 suggestedCategoryName = suggestedCategoryName,
                 upiRef = upiRef,
                 accountLast4 = accountLast4,
-                timestamp = timestamp
+                timestamp = timestamp,
+                isIncome = isIncome
             )
         } else {
             // Fallback: Heads-up Interactive Notification with 1-tap action buttons
@@ -119,7 +124,8 @@ class PaymentOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
                 expenseId = expenseId,
                 amount = amount,
                 merchant = merchant,
-                suggestedCategoryName = suggestedCategoryName
+                suggestedCategoryName = suggestedCategoryName,
+                isIncome = isIncome
             )
             stopSelf()
         }
@@ -135,7 +141,8 @@ class PaymentOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
         suggestedCategoryName: String,
         upiRef: String?,
         accountLast4: String?,
-        timestamp: Long
+        timestamp: Long,
+        isIncome: Boolean
     ) {
         removeOverlayView()
 
@@ -174,6 +181,7 @@ class PaymentOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
                         upiRef = upiRef,
                         accountLast4 = accountLast4,
                         timestamp = timestamp,
+                        isIncome = isIncome,
                         autoDismissDurationSeconds = 10,
                         onSave = { chosenCategoryId, note ->
                             serviceScope.launch(Dispatchers.IO) {
@@ -209,7 +217,8 @@ class PaymentOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
         expenseId: Long,
         amount: Double,
         merchant: String,
-        suggestedCategoryName: String
+        suggestedCategoryName: String,
+        isIncome: Boolean
     ) {
         val notifManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -229,21 +238,31 @@ class PaymentOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
             return NotificationCompat.Action.Builder(0, name, pending).build()
         }
 
-        val headsUpNotif = NotificationCompat.Builder(this, CHANNEL_ID)
+        val titleText = if (isIncome) "💰 ₹${amount.toInt()} received from $merchant" else "⚡ ₹${amount.toInt()} paid to $merchant"
+        val bodyText = if (isIncome) "Auto-logged to Inflow • Tap quick category" else "Suggested: $suggestedCategoryName • Auto-logged"
+
+        val headsUpBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("⚡ ₹${amount.toInt()} paid to $merchant")
-            .setContentText("Suggested: $suggestedCategoryName • Tap to categorize")
+            .setContentTitle(titleText)
+            .setContentText(bodyText)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .addAction(createCategoryAction("🍔 Food", 1L))
-            .addAction(createCategoryAction("🚕 Travel", 2L))
-            .addAction(createCategoryAction("💡 Bills", 3L))
-            .addAction(createCategoryAction("🛍 Shopping", 4L))
             .setAutoCancel(true)
-            .setTimeoutAfter(10000L) // Auto dismiss after 10 seconds
-            .build()
+            .setTimeoutAfter(10000L)
 
-        notifManager.notify(NOTIFICATION_ID + 1, headsUpNotif)
+        if (isIncome) {
+            headsUpBuilder.addAction(createCategoryAction("💼 Salary", 8L))
+            headsUpBuilder.addAction(createCategoryAction("🤝 Client", 9L))
+            headsUpBuilder.addAction(createCategoryAction("🔄 Refund", 3L))
+            headsUpBuilder.addAction(createCategoryAction("🎁 Transfer", 10L))
+        } else {
+            headsUpBuilder.addAction(createCategoryAction("🍔 Food", 1L))
+            headsUpBuilder.addAction(createCategoryAction("🚕 Travel", 2L))
+            headsUpBuilder.addAction(createCategoryAction("💡 Bills", 3L))
+            headsUpBuilder.addAction(createCategoryAction("🛍 Shopping", 4L))
+        }
+
+        notifManager.notify(NOTIFICATION_ID + 1, headsUpBuilder.build())
     }
 
     private fun removeOverlayView() {

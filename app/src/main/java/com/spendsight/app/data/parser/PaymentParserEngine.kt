@@ -58,12 +58,14 @@ object PaymentParserEngine {
     )
 
     private val CREDIT_KEYWORDS = Pattern.compile(
-        "\\b(credited|received from|refunded|deposited|cashback received)\\b",
+        "\\b(credited|received|refunded|deposited|cashback|payment received|salary|deposit|inward|added)\\b",
         Pattern.CASE_INSENSITIVE
     )
 
-    // Regex for Merchant Name extraction
+    // Regex for Merchant / Sender Name extraction
     private val MERCHANT_PATTERNS = listOf(
+        Pattern.compile("(?:received from|sent by|payment from|transfer from|credited by|from)\\s+([A-Za-z0-9&.,' -]+?)(?:\\s+(?:using|on|via|ref|txn|for|successful|bal|at|avl|upi|in|a/c)\\b|[.]|$)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("([A-Za-z0-9&.,' -]+?)\\s+(?:sent you|has sent you|paid you)\\s+(?:Rs\\.?|INR|₹)?", Pattern.CASE_INSENSITIVE),
         Pattern.compile("(?:paid to|sent to|payment to|transfer to|to)\\s+([A-Za-z0-9&.,' -]+?)(?:\\s+(?:using|on|via|ref|txn|for|successful|bal|at|avl|upi)\\b|[.]|$)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("(?:at|at merchant)\\s+([A-Za-z0-9&.,' -]+?)(?:\\s+(?:on|via|ref|txn|bal|avl|for)\\b|[.]|$)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("(?:debited.*(?:to|at))\\s+([A-Za-z0-9&.,' -]+?)(?:\\s+(?:on|via|ref|bal)\\b|[.]|$)", Pattern.CASE_INSENSITIVE),
@@ -120,9 +122,17 @@ object PaymentParserEngine {
         if (amount <= 0.0) return null
 
         // 2. Determine Debit vs Credit
-        val isDebit = !CREDIT_KEYWORDS.matcher(fullText).find()
+        val hasCredit = CREDIT_KEYWORDS.matcher(fullText).find()
+        val hasDebit = DEBIT_KEYWORDS.matcher(fullText).find()
+        val isDebit = if (hasCredit && !hasDebit) {
+            false
+        } else if (hasCredit && hasDebit) {
+            !fullText.contains("paid", ignoreCase = true) && !fullText.contains("debited", ignoreCase = true)
+        } else {
+            true
+        }
 
-        // 3. Extract Merchant
+        // 3. Extract Merchant / Sender
         var extractedMerchant: String? = null
         for (pattern in MERCHANT_PATTERNS) {
             val matcher = pattern.matcher(fullText)
@@ -135,7 +145,7 @@ object PaymentParserEngine {
             }
         }
 
-        val finalMerchant = extractedMerchant ?: fallbackMerchantFromTitle(title, packageName)
+        val finalMerchant = extractedMerchant ?: fallbackMerchantFromTitle(title, packageName, isDebit)
 
         // 4. Extract Account Last 4 digits
         var accountLast4: String? = null
@@ -172,22 +182,26 @@ object PaymentParserEngine {
 
     private fun cleanMerchantName(raw: String): String {
         return raw
-            .replace(Regex("(?i)\\b(via upi|using upi|ref no.*|txn id.*|on \\d{2}.*|bal.*|avl lmt.*|successful)\\b"), "")
+            .replace(Regex("(?i)\\b(via upi|using upi|ref no.*|txn id.*|on \\d{2}.*|bal.*|avl lmt.*|successful|in your bank.*|in your account.*)\\b"), "")
             .replace(Regex("[^a-zA-Z0-9 .&'-]"), "")
             .trim()
             .take(40)
     }
 
-    private fun fallbackMerchantFromTitle(title: String?, packageName: String?): String {
-        if (!title.isNullOrBlank() && !title.contains("Paid", ignoreCase = true) && !title.contains("Alert", ignoreCase = true)) {
+    private fun fallbackMerchantFromTitle(title: String?, packageName: String?, isDebit: Boolean): String {
+        if (!title.isNullOrBlank() && 
+            !title.contains("Paid", ignoreCase = true) && 
+            !title.contains("Alert", ignoreCase = true) &&
+            !title.contains("Received", ignoreCase = true)
+        ) {
             return title.take(30)
         }
         return when (packageName) {
-            PKG_GPAY -> "GPay Transfer"
-            PKG_PHONEPE -> "PhonePe Merchant"
-            PKG_PAYTM -> "Paytm Merchant"
+            PKG_GPAY -> if (isDebit) "Google Pay Merchant" else "Google Pay Contact"
+            PKG_PHONEPE -> if (isDebit) "PhonePe Merchant" else "PhonePe Contact"
+            PKG_PAYTM -> if (isDebit) "Paytm Merchant" else "Paytm Contact"
             PKG_BHIM -> "BHIM UPI Transfer"
-            else -> "Merchant Transaction"
+            else -> if (isDebit) "Merchant Transaction" else "Payment Received"
         }
     }
 

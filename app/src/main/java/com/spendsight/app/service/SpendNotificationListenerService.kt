@@ -44,6 +44,7 @@ class SpendNotificationListenerService : NotificationListenerService() {
         const val EXTRA_UPI_REF = "extra_upi_ref"
         const val EXTRA_ACCOUNT_LAST4 = "extra_account_last4"
         const val EXTRA_TIMESTAMP = "extra_timestamp"
+        const val EXTRA_IS_INCOME = "extra_is_income"
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -129,7 +130,8 @@ class SpendNotificationListenerService : NotificationListenerService() {
                     suggestedCategoryName = categoryName,
                     upiRef = parsed.upiRef,
                     accountLast4 = parsed.accountLast4,
-                    timestamp = parsed.timestamp
+                    timestamp = parsed.timestamp,
+                    isIncome = !parsed.isDebit
                 )
 
             } catch (e: Exception) {
@@ -146,7 +148,8 @@ class SpendNotificationListenerService : NotificationListenerService() {
         suggestedCategoryName: String,
         upiRef: String?,
         accountLast4: String?,
-        timestamp: Long
+        timestamp: Long,
+        isIncome: Boolean
     ) {
         val overlayIntent = Intent(this, PaymentOverlayService::class.java).apply {
             putExtra(EXTRA_EXPENSE_ID, expenseId)
@@ -157,6 +160,7 @@ class SpendNotificationListenerService : NotificationListenerService() {
             putExtra(EXTRA_UPI_REF, upiRef)
             putExtra(EXTRA_ACCOUNT_LAST4, accountLast4)
             putExtra(EXTRA_TIMESTAMP, timestamp)
+            putExtra(EXTRA_IS_INCOME, isIncome)
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

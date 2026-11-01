@@ -71,5 +71,46 @@ class PaymentParserEngineTest {
         )
         assertNull("Promo message must be discarded", result)
     }
+
+    @Test
+    fun parse_phonepeReceivedPayment_extractsCorrectValues() {
+        val result = PaymentParserEngine.parse(
+            title = "PhonePe",
+            body = "Received ₹500 from Rahul Sharma on PhonePe.",
+            packageName = PaymentParserEngine.PKG_PHONEPE
+        )
+
+        assertNotNull(result)
+        assertEquals(500.00, result!!.amount, 0.001)
+        assertTrue(result.merchant.contains("Rahul Sharma", ignoreCase = true))
+        assertTrue(!result.isDebit) // Inflow / Income
+    }
+
+    @Test
+    fun parse_gpayReceivedPayment_extractsCorrectValues() {
+        val result = PaymentParserEngine.parse(
+            title = "Google Pay",
+            body = "₹1,200 received from Client Partner via UPI.",
+            packageName = PaymentParserEngine.PKG_GPAY
+        )
+
+        assertNotNull(result)
+        assertEquals(1200.00, result!!.amount, 0.001)
+        assertTrue(!result.isDebit)
+    }
+
+    @Test
+    fun parse_sentYouPayment_extractsCorrectValues() {
+        val result = PaymentParserEngine.parse(
+            title = "Payment Alert",
+            body = "Amit Verma sent you ₹750 via PhonePe.",
+            packageName = PaymentParserEngine.PKG_PHONEPE
+        )
+
+        assertNotNull(result)
+        assertEquals(750.00, result!!.amount, 0.001)
+        assertTrue(result.merchant.contains("Amit Verma", ignoreCase = true))
+        assertTrue(!result.isDebit)
+    }
 }
 

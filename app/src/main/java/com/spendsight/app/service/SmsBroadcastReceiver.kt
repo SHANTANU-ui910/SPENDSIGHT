@@ -118,6 +118,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     putExtra(SpendNotificationListenerService.EXTRA_UPI_REF, parsed.upiRef)
                     putExtra(SpendNotificationListenerService.EXTRA_ACCOUNT_LAST4, parsed.accountLast4)
                     putExtra(SpendNotificationListenerService.EXTRA_TIMESTAMP, parsed.timestamp)
+                    putExtra(SpendNotificationListenerService.EXTRA_IS_INCOME, !parsed.isDebit)
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -48,3 +48,4 @@ The native Kotlin codebase is located in `/app`:
 - Open the root folder in **Android Studio Ladybug (2024.2+)**.
 - Sync Gradle (`build.gradle.kts`).
 - Run on any physical Android device or emulator running Android 8.0+ (API 26+).
+

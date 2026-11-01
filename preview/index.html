@@ -1123,6 +1123,16 @@
           <div class="period-btn" onclick="setPeriod('CUSTOM', this)">ALL TIME</div>
         </div>
 
+        <!-- Fast Auto-Detect / Paste Alert Quick Bar -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button onclick="pasteFromClipboard()" style="flex:1.4;height:38px;background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.3);border-radius:12px;color:var(--teal);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer">
+            📋 PASTE UPI / SMS
+          </button>
+          <button id="notifPermBtn" onclick="requestNotificationAccess()" style="flex:1;height:38px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer">
+            🔔 NOTIFICATIONS
+          </button>
+        </div>
+
         <!-- Hero Spending Telemetry Card -->
         <div class="hero-card">
           <div class="hero-top-row">
@@ -1343,7 +1353,11 @@
       <div class="fab-wrap">
         <div class="radial-menu" id="radialMenu">
           <div class="radial-item" onclick="openAddModal(); toggleFab();">⌨ MANUAL ENTRY</div>
-          <div class="radial-item" onclick="simulatePaymentFlow('UPI'); toggleFab();">⚡ TEST INTERCEPT</div>
+          <div class="radial-item" onclick="pasteFromClipboard(); toggleFab();">📋 PASTE UPI / SMS</div>
+          <div class="radial-item" onclick="simulatePhonePePayment('DEBIT'); toggleFab();">📱 PHONEPE PAID</div>
+          <div class="radial-item" onclick="simulatePhonePePayment('CREDIT'); toggleFab();">💰 PHONEPE RECEIVED</div>
+          <div class="radial-item" onclick="simulateGPayPayment('DEBIT'); toggleFab();">📱 GPAY PAID</div>
+          <div class="radial-item" onclick="simulateGPayPayment('CREDIT'); toggleFab();">💰 GPAY RECEIVED</div>
         </div>
         <div class="center-fab" id="centerFab" onclick="toggleFab()">+</div>
       </div>
@@ -1363,7 +1377,7 @@
       <div class="overlay-sheet">
         <div class="drag-handle"></div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-cyan);font-weight:700">⚡ PAYMENT INTERCEPTED</span>
+          <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-cyan);font-weight:700" id="popupHeaderTag">⚡ PAYMENT INTERCEPTED</span>
           <span style="font-family:'JetBrains Mono';font-size:10px;color:var(--amber)" id="countdownTimer">⏱ 10s AUTO</span>
         </div>
 
@@ -1472,40 +1486,52 @@
 
     <!-- Clean Functional Simulation Suite -->
     <div class="action-grid">
-      <div class="sim-btn" onclick="simulatePaymentFlow('UPI'); closeDrawerIfMobile();">
-        <span class="badge-tag tag-gpay">UPI PAYMENT</span>
-        <h4>UPI Alert Test</h4>
-        <p>Trigger UPI notification intercept</p>
+      <div class="sim-btn" onclick="simulatePhonePePayment('DEBIT'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-phonepe">PHONEPE OUTFLOW</span>
+        <h4>PhonePe Paid</h4>
+        <p>Paid ₹320 to Chai Point</p>
       </div>
 
-      <div class="sim-btn" onclick="simulatePaymentFlow('CARD'); closeDrawerIfMobile();">
-        <span class="badge-tag tag-sms">CARD PAYMENT</span>
-        <h4>Card Debit Alert</h4>
-        <p>Trigger card swipe notification</p>
+      <div class="sim-btn" onclick="simulatePhonePePayment('CREDIT'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-gpay" style="color:var(--mint);border-color:rgba(0,255,157,0.3)">PHONEPE INFLOW</span>
+        <h4>PhonePe Received</h4>
+        <p>Received ₹1,200 from Rahul</p>
       </div>
 
-      <div class="sim-btn" onclick="simulatePaymentFlow('NETBANKING'); closeDrawerIfMobile();">
-        <span class="badge-tag tag-phonepe">BANK TRANSFER</span>
-        <h4>NetBanking Debit</h4>
-        <p>Trigger bank transfer intercept</p>
+      <div class="sim-btn" onclick="simulateGPayPayment('DEBIT'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-gpay">GPAY OUTFLOW</span>
+        <h4>Google Pay Paid</h4>
+        <p>Paid ₹480 to Domino's</p>
+      </div>
+
+      <div class="sim-btn" onclick="simulateGPayPayment('CREDIT'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-gpay" style="color:var(--mint);border-color:rgba(0,255,157,0.3)">GPAY INFLOW</span>
+        <h4>Google Pay Received</h4>
+        <p>Received ₹3,500 from Client</p>
+      </div>
+
+      <div class="sim-btn" onclick="processPaymentText('Dear Customer, Rs 25000 credited to A/c ending 1234 by Salary Transfer on 01-Nov.'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-phonepe" style="color:var(--mint);border-color:rgba(0,255,157,0.3)">BANK SALARY</span>
+        <h4>Salary Credited</h4>
+        <p>Credited ₹25,000</p>
+      </div>
+
+      <div class="sim-btn" onclick="processPaymentText('INR 2,400.00 debited from A/c XX1234 on 01-Nov to Uber India via Card.'); closeDrawerIfMobile();">
+        <span class="badge-tag tag-sms">BANK CARD</span>
+        <h4>Card Debit</h4>
+        <p>Debited ₹2,400 to Uber</p>
       </div>
 
       <div class="sim-btn" onclick="simulateOtp(); closeDrawerIfMobile();">
-        <span class="badge-tag tag-spam">SECURITY TEST</span>
-        <h4>OTP Filter Test</h4>
-        <p>Silent discard verification</p>
+        <span class="badge-tag tag-spam">SECURITY</span>
+        <h4>OTP Filter</h4>
+        <p>Silent discard test</p>
       </div>
 
       <div class="sim-btn" onclick="simulateDeduplication(); closeDrawerIfMobile();">
-        <span class="badge-tag tag-sms">DEDUPE TEST</span>
+        <span class="badge-tag tag-sms">DEDUPE</span>
         <h4>Duplicate Check</h4>
         <p>10-Min Suppress Test</p>
-      </div>
-
-      <div class="sim-btn" onclick="openAddModal(); closeDrawerIfMobile();">
-        <span class="badge-tag tag-gpay">MANUAL</span>
-        <h4>Fast Entry</h4>
-        <p>Add genuine transaction</p>
       </div>
     </div>
 
@@ -1716,6 +1742,7 @@
 
     updateClock();
     setInterval(updateClock, 30000);
+    updateNotifBtnStatus();
     refreshAllTelemetry();
     log("[SYS] Ledger initialized: All metrics set to 0.", "info");
   }
@@ -2471,25 +2498,131 @@
     log(`[MANUAL] Recorded ${newTx.merchant}: ₹${amt.toFixed(2)} (${newTx.category})`, "success");
   }
 
-  // 15. Instant Payment Pop-Up Overlay (Spring Animation + Auto-Dismiss)
+  // 15. Real-Time OS & In-App Notification System
+  function requestNotificationAccess() {
+    if (!("Notification" in window)) {
+      alert("System notifications are not supported in this browser. Install SpendSight on Android or iOS via Add to Home Screen for rich alerts!");
+      return;
+    }
+    Notification.requestPermission().then(permission => {
+      updateNotifBtnStatus();
+      if (permission === "granted") {
+        playTick(1000, 0.1);
+        log("[NOTIF] System Notification permission granted.", "success");
+        sendSystemNotification("⚡ SpendSight // Active", "Payment auto-entry and background alerts are enabled!");
+      } else {
+        log("[NOTIF] Notification permission denied or dismissed.", "warn");
+      }
+    });
+  }
+
+  function updateNotifBtnStatus() {
+    const btn = document.getElementById("notifPermBtn");
+    if (!btn) return;
+    if ("Notification" in window) {
+      if (Notification.permission === "granted") {
+        btn.textContent = "🔔 NOTIFS ON";
+        btn.style.color = "var(--mint)";
+        btn.style.borderColor = "rgba(0,255,157,0.3)";
+        btn.style.background = "rgba(0,255,157,0.08)";
+      } else if (Notification.permission === "denied") {
+        btn.textContent = "🔕 NOTIFS OFF";
+        btn.style.color = "var(--laser)";
+      } else {
+        btn.textContent = "🔔 NOTIFICATIONS";
+      }
+    } else {
+      btn.textContent = "🔔 NOTIFICATIONS";
+    }
+  }
+
+  function sendSystemNotification(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      try {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(title, {
+              body: body,
+              icon: '/icon-192.png',
+              badge: '/icon-192.png',
+              vibrate: [80, 40, 80],
+              tag: 'spendsight-payment'
+            });
+          }).catch(() => {
+            new Notification(title, { body: body, icon: '/icon-192.png' });
+          });
+        } else {
+          new Notification(title, { body: body, icon: '/icon-192.png' });
+        }
+      } catch(e) {
+        try { new Notification(title, { body: body, icon: '/icon-192.png' }); } catch(err){}
+      }
+    }
+    if (navigator.vibrate) {
+      try { navigator.vibrate([40, 60, 40]); } catch(e){}
+    }
+  }
+
+  // 16. Instant Payment Pop-Up Overlay (Spring Animation + Auto-Dismiss)
   function triggerPaymentPopup(data) {
     currentPopupData = data;
     playTick(900, 0.08);
 
-    document.getElementById("popupAmount").textContent = `₹ ${data.amount.toFixed(2)}`;
-    document.getElementById("popupMerchant").textContent = data.merchant;
+    const isIncome = !!data.isIncome;
+    const headerTag = document.getElementById("popupHeaderTag");
+    if (headerTag) {
+      headerTag.textContent = isIncome ? "💰 PAYMENT RECEIVED // INFLOW" : "⚡ PAYMENT INTERCEPTED";
+      headerTag.style.color = isIncome ? "var(--mint)" : "var(--text-cyan)";
+    }
+
+    const amtEl = document.getElementById("popupAmount");
+    amtEl.textContent = (isIncome ? "+ " : "") + `₹ ${data.amount.toFixed(2)}`;
+    amtEl.style.color = isIncome ? "var(--mint)" : "var(--text-pure)";
+
+    document.getElementById("popupMerchant").textContent = isIncome ? `From: ${data.merchant}` : data.merchant;
     document.getElementById("popupMeta").textContent = `${data.source || 'Payment Alert'} • ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
 
-    const suggested = merchantMemory[data.merchant.toUpperCase()] || data.category || "Other";
-    document.getElementById("popupSuggestion").textContent = `★ Suggested Category: ${suggested}`;
+    const suggested = isIncome ? "Income" : (merchantMemory[data.merchant.toUpperCase()] || data.category || "Other");
+    document.getElementById("popupSuggestion").textContent = `★ Suggested: ${suggested}`;
 
-    const chips = document.querySelectorAll("#popupChipRow .hologram-chip");
-    chips.forEach(c => {
-      c.classList.remove("selected");
-      if (c.textContent.includes(suggested)) c.classList.add("selected");
-    });
+    // Render chips dynamically
+    const chipRow = document.getElementById("popupChipRow");
+    if (chipRow) {
+      const cats = isIncome
+        ? [
+            { name: "Income", icon: "💼" },
+            { name: "Salary", icon: "🏦" },
+            { name: "Freelance", icon: "🤝" },
+            { name: "Refund", icon: "🔄" },
+            { name: "Transfer", icon: "🎁" },
+            { name: "Other", icon: "➕" }
+          ]
+        : [
+            { name: "Food", icon: "☕" },
+            { name: "Travel", icon: "🚗" },
+            { name: "Bills", icon: "💡" },
+            { name: "Shopping", icon: "🛍" },
+            { name: "Health", icon: "💊" },
+            { name: "Groceries", icon: "🛒" },
+            { name: "Rent", icon: "🏠" },
+            { name: "Other", icon: "➕" }
+          ];
+
+      chipRow.innerHTML = cats.map(c => `
+        <div class="hologram-chip ${c.name.toLowerCase() === suggested.toLowerCase() ? 'selected' : ''}" onclick="selectPopupChip(this, '${c.name}')">
+          ${c.icon} ${c.name}
+        </div>
+      `).join('');
+    }
 
     document.getElementById("popupNote").value = "";
+
+    // Trigger System Notification
+    if (isIncome) {
+      sendSystemNotification(`💰 ₹${data.amount.toFixed(0)} Received from ${data.merchant}`, `Auto-logged to Inflow • SpendSight`);
+    } else {
+      sendSystemNotification(`⚡ ₹${data.amount.toFixed(0)} Paid to ${data.merchant}`, `Auto-logged // Suggested: ${suggested} • SpendSight`);
+    }
 
     let seconds = 10;
     const timerEl = document.getElementById("countdownTimer");
@@ -2521,15 +2654,16 @@
     playTick(400);
 
     if (auto && currentPopupData) {
-      log(`[POPUP] Auto-saved ${currentPopupData.merchant} as Uncategorized on 10s timeout.`, "warn");
+      const isIncome = !!currentPopupData.isIncome;
+      log(`[POPUP] Auto-saved ${currentPopupData.merchant} on 10s timeout.`, "warn");
       transactions.unshift({
         id: Date.now(),
         merchant: currentPopupData.merchant,
         amount: currentPopupData.amount,
-        category: "Other",
+        category: isIncome ? "Income" : "Other",
         method: currentPopupData.method || "UPI",
         timestamp: Date.now(),
-        isIncome: false,
+        isIncome: isIncome,
         notes: "Auto-saved on timeout"
       });
       saveTransactionsToStorage();
@@ -2542,11 +2676,14 @@
     playTick(1000, 0.1);
 
     const selectedChip = document.querySelector("#popupChipRow .hologram-chip.selected");
-    const chosenCat = selectedChip ? selectedChip.textContent.replace(/[^a-zA-Z]/g, '') : "Other";
+    const chosenCat = selectedChip ? selectedChip.textContent.replace(/[^a-zA-Z]/g, '').trim() : (currentPopupData.isIncome ? "Income" : "Other");
     const note = document.getElementById("popupNote").value.trim();
+    const isIncome = !!currentPopupData.isIncome;
 
-    merchantMemory[currentPopupData.merchant.toUpperCase()] = chosenCat;
-    log(`[LEARNED] Preference Saved: "${currentPopupData.merchant}" mapped to "${chosenCat}".`, "success");
+    if (!isIncome) {
+      merchantMemory[currentPopupData.merchant.toUpperCase()] = chosenCat;
+      log(`[LEARNED] Preference Saved: "${currentPopupData.merchant}" mapped to "${chosenCat}".`, "success");
+    }
 
     transactions.unshift({
       id: Date.now(),
@@ -2555,7 +2692,7 @@
       category: chosenCat,
       method: currentPopupData.method || "UPI",
       timestamp: Date.now(),
-      isIncome: false,
+      isIncome: isIncome,
       notes: note
     });
 
@@ -2564,7 +2701,132 @@
     refreshAllTelemetry();
   }
 
-  // 16. Payment Simulations & On-Device Regex Parser
+  // 17. Intelligent Multi-App Payment Detection & Clipboard Parser
+  async function pasteFromClipboard() {
+    playTick(600);
+    let text = "";
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        text = await navigator.clipboard.readText();
+      }
+    } catch(e) {}
+
+    if (!text || !text.trim()) {
+      text = prompt("📋 Paste SMS or payment alert from PhonePe / Google Pay / Bank:", "");
+    }
+
+    if (text && text.trim()) {
+      processPaymentText(text.trim());
+    }
+  }
+
+  function processPaymentText(raw) {
+    if (!raw) return;
+    log(`[PARSER] Processing payment text: "${raw.substring(0, 45)}..."`, "info");
+
+    // Check OTP or Promo
+    if (/(?:otp|one time password|secret code|verification code|cashback on your next|win up to|pre-approved)/i.test(raw)) {
+      log("[SECURITY] Text classified as OTP / Promo. Discarded without logging.", "warn");
+      alert("Security Filter: Discarded OTP or Promotional message.");
+      return;
+    }
+
+    // Extract amount: handles ₹, Rs, Rs., INR with comma formatting
+    const amtMatch = raw.match(/(?:(?:Rs\.?|INR|₹)\s*|Rs\s+)([\d,]+(?:\.\d{1,2})?)/i);
+    if (!amtMatch) {
+      log("[PARSER] No valid currency amount found in text.", "warn");
+      alert("Could not detect monetary amount in pasted text.\nExample: 'Paid ₹ 320 to Cafe' or 'Received ₹ 500 from Rahul'");
+      return;
+    }
+
+    const amount = parseFloat(amtMatch[1].replace(/,/g, ''));
+    if (isNaN(amount) || amount <= 0) {
+      log("[PARSER] Extracted amount is invalid.", "warn");
+      return;
+    }
+
+    // Detect Source (PhonePe, Google Pay, Paytm, BHIM, Bank)
+    let source = "UPI Notification";
+    let detectedApp = "UPI";
+    if (/phonepe/i.test(raw)) {
+      source = "PhonePe Alert";
+      detectedApp = "PhonePe";
+    } else if (/google\s*pay|gpay/i.test(raw)) {
+      source = "Google Pay Alert";
+      detectedApp = "Google Pay";
+    } else if (/paytm/i.test(raw)) {
+      source = "Paytm Alert";
+      detectedApp = "Paytm";
+    } else if (/bhim/i.test(raw)) {
+      source = "BHIM UPI Alert";
+      detectedApp = "BHIM";
+    } else if (/card|credit card|debit card/i.test(raw)) {
+      source = "Card Alert";
+      detectedApp = "Card";
+    } else if (/salary|neft|rtgs|imps/i.test(raw)) {
+      source = "Bank Transfer Alert";
+      detectedApp = "NetBanking";
+    }
+
+    // Detect Inflow (Received / Credit) vs Outflow (Paid / Debit)
+    const hasCredit = /(?:credited|received|refunded|deposited|cashback|payment received|salary|deposit|inward|added)/i.test(raw);
+    const hasDebit = /(?:paid|debited|spent|sent to|deducted|payment to|withdrawn|transferred to|charged)/i.test(raw);
+    const isIncome = (hasCredit && !hasDebit) || (hasCredit && !/paid|debited/i.test(raw));
+
+    // Extract Merchant / Sender
+    let merchant = isIncome ? "Payment Received" : "Merchant Transaction";
+    if (isIncome) {
+      const matchIn = raw.match(/(?:received from|sent by|payment from|transfer from|credited by|from)\s+([A-Za-z0-9&.,' -]+?)(?:\s+(?:using|on|via|ref|txn|for|successful|bal|at|avl|upi|in|a\/c)\b|[.]|$)/i) ||
+                      raw.match(/([A-Za-z0-9&.,' -]+?)\s+(?:sent you|has sent you|paid you)\s+(?:Rs\.?|INR|₹)?/i);
+      if (matchIn && matchIn[1].trim().length > 1) {
+        merchant = matchIn[1].trim();
+      } else {
+        merchant = `${detectedApp} Contact`;
+      }
+    } else {
+      const matchOut = raw.match(/(?:paid to|sent to|payment to|transfer to|to|at)\s+([A-Za-z0-9&.,' -]+?)(?:\s+(?:using|on|via|ref|txn|for|successful|bal|at|avl|upi)\b|[.]|$)/i);
+      if (matchOut && matchOut[1].trim().length > 1) {
+        merchant = matchOut[1].trim();
+      } else {
+        merchant = `${detectedApp} Merchant`;
+      }
+    }
+
+    // Clean merchant string
+    merchant = merchant.replace(/(?:via upi|using upi|ref no.*|txn id.*|on \d{2}.*|bal.*|successful|in your bank.*)/i, '').trim();
+    if (merchant.length > 30) merchant = merchant.substring(0, 30);
+
+    const method = /card/i.test(raw) ? "CARD" : /netbanking|imps|neft/i.test(raw) ? "NETBANKING" : "UPI";
+    const category = isIncome ? "Income" : (merchantMemory[merchant.toUpperCase()] || "Other");
+
+    log(`[PARSER] Auto-Parsed ${isIncome ? 'INFLOW' : 'OUTFLOW'}: ₹${amount} (${merchant}) via ${detectedApp}`, "success");
+
+    triggerPaymentPopup({
+      merchant: merchant,
+      amount: amount,
+      source: source,
+      method: method,
+      isIncome: isIncome,
+      category: category
+    });
+  }
+
+  function simulatePhonePePayment(type = 'DEBIT') {
+    if (type === 'CREDIT') {
+      processPaymentText("Received ₹1,200 from Rahul Sharma on PhonePe. Txn ID: 902819284920.");
+    } else {
+      processPaymentText("Paid ₹320 to Chai Point on PhonePe. Ref: 489201928491.");
+    }
+  }
+
+  function simulateGPayPayment(type = 'DEBIT') {
+    if (type === 'CREDIT') {
+      processPaymentText("Payment of ₹3,500 received from Client Project via Google Pay.");
+    } else {
+      processPaymentText("Paid ₹480 to Domino's Pizza on Google Pay. UPI Ref: 382910492819.");
+    }
+  }
+
   function simulatePaymentFlow(method) {
     let merchant = "Merchant Payment";
     let amount = 250.00;
@@ -2585,7 +2847,8 @@
       merchant: merchant,
       amount: amount,
       source: source,
-      method: method
+      method: method,
+      isIncome: false
     });
   }
 
@@ -2605,48 +2868,9 @@
     const input = document.getElementById("customSimInput");
     const raw = input.value.trim();
     if (!raw) return alert("Please enter SMS or notification text to test.");
-
-    log(`[PARSER] Received custom raw text: "${raw}"`, "info");
-
-    // Check for OTP or spam
-    if (/(?:otp|one time password|secret code|verification code|cashback on your next)/i.test(raw)) {
-      log("[SECURITY] Text classified as OTP / Promo. Discarded.", "warn");
-      alert("Test Result: Discarded as OTP or Promo message.");
-      return;
-    }
-
-    // Extract amount
-    const amtMatch = raw.match(/(?:(?:Rs\.?|INR|₹)\s*|Rs\s+)([\d,]+(?:\.\d{1,2})?)/i);
-    if (!amtMatch) {
-      log("[PARSER] No valid currency amount found in text.", "warn");
-      alert("Could not detect monetary amount (e.g. ₹ 500, Rs. 250, INR 1200).");
-      return;
-    }
-
-    const amount = parseFloat(amtMatch[1].replace(/,/g, ''));
-    if (isNaN(amount) || amount <= 0) {
-      log("[PARSER] Extracted amount is invalid.", "warn");
-      return;
-    }
-
-    // Extract merchant candidate
-    let merchant = "Merchant Transaction";
-    const mMatch = raw.match(/(?:paid to|sent to|payment to|to|at)\s+([A-Za-z0-9&.,' -]+?)(?:\s+(?:using|on|via|ref|txn|for|successful|bal|at|avl|upi)\b|[.]|$)/i);
-    if (mMatch && mMatch[1].trim().length > 1) {
-      merchant = mMatch[1].trim();
-    }
-
-    const method = /card/i.test(raw) ? "CARD" : /netbanking/i.test(raw) ? "NETBANKING" : "UPI";
-
     input.value = "";
     closeDrawerIfMobile();
-    log(`[PARSER] Successfully parsed: ${merchant} — ₹${amount}`, "success");
-    triggerPaymentPopup({
-      merchant: merchant,
-      amount: amount,
-      source: "Custom Parser",
-      method: method
-    });
+    processPaymentText(raw);
   }
 
   // 17. Settings & Toggles

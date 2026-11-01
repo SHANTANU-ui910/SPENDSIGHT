@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spendsight-v4';
+const CACHE_NAME = 'spendsight-v5';
 const ASSETS = [
   '/manifest.json',
   '/icon-192.png',
@@ -34,6 +34,23 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => {
       return cached || fetch(event.request);
+    })
+  );
+});
+
+// Focus or open SpendSight when user taps the notification
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
     })
   );
 });
